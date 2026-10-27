@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VetaStart — автоматизация Instagram</title>
+<meta name="description" content="Создавай автоматические Instagram-воронки по кодовым словам с VetaStart.">
+<style>
+:root{--bg:#0d0b16;--panel:#171426;--text:#f8f7ff;--muted:#b9b3d0;--purple:#9878ff;--pink:#ed8dff;--line:#302944}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#30205b 0,transparent 36%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}.wrap{width:min(1120px,92%);margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}.brand{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:800;letter-spacing:-.04em}.logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--pink));font-weight:900;color:#fff}.navlinks{display:flex;gap:24px;color:var(--muted);font-size:.94rem}.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:13px;padding:13px 19px;background:linear-gradient(135deg,var(--purple),#7451ec);color:#fff;font-weight:750;cursor:pointer;box-shadow:0 8px 28px #7451ec35}.btn.secondary{background:#ffffff0c;border:1px solid var(--line);box-shadow:none}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;padding:72px 0 82px}.eyebrow{display:inline-flex;gap:8px;align-items:center;border:1px solid #6f58a8;background:#6c4bc21c;color:#d6c9ff;border-radius:999px;padding:7px 12px;font-size:.83rem;font-weight:650}.dot{width:7px;height:7px;border-radius:50%;background:#9dffcb;box-shadow:0 0 12px #9dffcb}h1{font-size:clamp(2.6rem,5.5vw,4.6rem);line-height:1.04;letter-spacing:-.065em;margin:22px 0}h1 span{background:linear-gradient(90deg,#b9a6ff,#f1a5ff);color:transparent;background-clip:text}.lead{font-size:1.13rem;color:var(--muted);max-width:590px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 18px}.note{font-size:.82rem;color:#8f88a9}.mock{border:1px solid #4c3b6a;background:linear-gradient(145deg,#211b36,#13101f);border-radius:24px;padding:22px;box-shadow:0 28px 90px #0008;transform:rotate(1deg)}.mocktop{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.pill{font-size:.75rem;border:1px solid #3c3155;border-radius:99px;padding:5px 9px;color:#d9ccff}.flowcard{background:#100d1c;border:1px solid #3b3052;border-radius:15px;padding:15px;margin:10px 0}.flowtitle{font-weight:750}.small{font-size:.83rem;color:var(--muted)}.arrow{text-align:center;color:#a891ff;font-size:1.4rem;line-height:1.5}.message{border-radius:12px;background:#30224d;padding:13px;margin-top:9px;font-size:.91rem}.section{padding:68px 0}.sectionhead{text-align:center;max-width:680px;margin:0 auto 34px}.sectionhead h2{font-size:clamp(1.9rem,3.5vw,2.8rem);letter-spacing:-.05em;line-height:1.15;margin:12px 0}.sectionhead p{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:linear-gradient(150deg,#1c172b,#13101e);border:1px solid var(--line);border-radius:19px;padding:23px}.icon{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;background:#8c6aff24;color:#c7b7ff;font-size:1.25rem}.card h3{margin:16px 0 7px}.card p{color:var(--muted);font-size:.94rem;margin-bottom:0}.demo{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}.steps{display:grid;gap:12px}.step{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--line);background:#ffffff05;border-radius:15px}.num{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#8e6dff28;color:#d5c8ff;font-weight:800}.step p{margin:4px 0 0;color:var(--muted);font-size:.91rem}.price{font-size:2.25rem;font-weight:850;letter-spacing:-.05em;margin:12px 0}.price small{font-size:.9rem;color:var(--muted);font-weight:500;letter-spacing:0}.list{padding:0;list-style:none;color:var(--muted);font-size:.93rem}.list li{margin:10px 0}.list li:before{content:"✓";color:#a995ff;margin-right:9px;font-weight:900}.coming{font-size:.76rem;display:inline-block;border:1px solid #66518e;color:#d6c8ff;border-radius:99px;padding:5px 9px;margin-bottom:8px}.cta{border:1px solid #4d3c71;border-radius:25px;padding:38px;background:radial-gradient(ellipse at 100% 0%,#5a388d55,transparent 50%),#171326;text-align:center}.cta h2{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.15;letter-spacing:-.05em;margin:10px 0}.cta p{color:var(--muted);max-width:610px;margin:0 auto 23px}.contact{display:flex;gap:10px;max-width:490px;margin:0 auto}.contact input{min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#0f0c19;color:#fff;font:inherit}.contact input:focus{outline:2px solid #8c6aff}.formnote{font-size:.8rem;color:var(--muted);margin-top:10px}.footer{border-top:1px solid var(--line);padding:24px 0;color:#928ba9;font-size:.84rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.toast{display:none;margin-top:12px;color:#c9ffdf;font-size:.9rem}.toast.show{display:block}
+@media(max-width:800px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding:45px 0 55px;gap:32px}.mock{transform:none}.grid{grid-template-columns:1fr}.demo{grid-template-columns:1fr}.section{padding:48px 0}.contact{flex-direction:column}.cta{padding:27px 18px}}
+</style>
+</head>
+<body>
+<header class="wrap nav">
+  <a class="brand" href="#" aria-label="VetaStart — главная"><span class="logo">V</span> VetaStart</a>
+  <nav class="navlinks"><a href="#how">Как работает</a><a href="#features">Возможности</a><a href="#plans">Тарифы</a></nav>
+  <a class="btn secondary" href="#start">Начать</a>
+</header>
+<main>
+<section class="wrap hero">
+  <div>
+    <div class="eyebrow"><span class="dot"></span> Автоматизация Instagram-воронок</div>
+    <h1>Пусть твой Instagram <span>работает на тебя</span></h1>
+    <p class="lead">Создавай сценарии, которые отвечают на кодовые слова, отправляют полезные материалы и помогают превращать интерес аудитории в заявки.</p>
+    <div class="actions"><a class="btn" href="#start">Попробовать VetaStart ↗</a><a class="btn secondary" href="#how">Посмотреть пример</a></div>
+    <p class="note">Первая версия проекта · Интеграция Instagram ещё в разработке</p>
+  </div>
+  <div class="mock" aria-label="Пример автоматической воронки">
+    <div class="mocktop"><div class="brand"><span class="logo">V</span> <span>Конструктор воронок</span></div><span class="pill">Пример</span></div>
+    <div class="flowcard"><div class="small">ТРИГГЕР</div><div class="flowtitle">Комментарий содержит слово</div><div class="message">ГАЙД</div></div>
+    <div class="arrow">↓</div>
+    <div class="flowcard"><div class="small">ДЕЙСТВИЕ</div><div class="flowtitle">Отправить сообщение в Direct</div><div class="message">Привет! ✨ Спасибо за интерес. Вот твой гайд: example.com/guide</div></div>
+    <div class="arrow">↓</div>
+    <div class="flowcard"><div class="small">СЛЕДУЮЩИЙ ШАГ</div><div class="flowtitle">Предложить продукт или консультацию</div><div class="small">Настраивается в сценарии</div></div>
+  </div>
+</section>
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="sectionhead"><div class="eyebrow">Меньше рутины — больше общения</div><h2>Инструменты для умных воронок</h2><p>Начни с простой механики и постепенно собирай сценарии под задачи своего бизнеса.</p></div>
+    <div class="grid">
+      <article class="card"><div class="icon">✉</div><h3>Ответы по кодовому слову</h3><p>Задай слово-триггер и подготовь сообщение, которое должен получить пользователь.</p></article>
+      <article class="card"><div class="icon">⌘</div><h3>Готовые сценарии</h3><p>Используй шаблоны для выдачи гайдов, сбора заявок и знакомства с продуктом.</p></article>
+      <article class="card"><div class="icon">↗</div><h3>Путь к покупке</h3><p>Продумывай последовательность сообщений, которая помогает человеку сделать следующий шаг.</p></article>
+    </div>
+  </div>
+</section>
+<section class="section" id="how">
+  <div class="wrap demo">
+    <div><div class="eyebrow">Как это устроено</div><h2 style="font-size:clamp(2rem,4vw,3rem);line-height:1.1;letter-spacing:-.05em">От комментария до заявки — по сценарию</h2><p class="lead">Ты задаёшь логику один раз, а подключённая система автоматизации выполняет разрешённые действия за тебя.</p></div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div><strong>Человек пишет кодовое слово</strong><p>Например, «ГАЙД» под публикацией или в сообщении — в зависимости от поддерживаемого триггера.</p></div></div>
+      <div class="step"><div class="num">2</div><div><strong>Система запускает сценарий</strong><p>Подключённая интеграция проверяет событие и запускает нужную автоматизацию.</p></div></div>
+      <div class="step"><div class="num">3</div><div><strong>Человек получает сообщение</strong><p>Например, ссылку на материал или информацию о продукте — в рамках правил платформы.</p></div></div>
+    </div>
+  </div>
+</section>
+<section class="section" id="plans">
+  <div class="wrap">
+    <div class="sectionhead"><div class="eyebrow">Планы на запуск</div><h2>Понятные тарифы</h2><p>Цены ниже — предварительная концепция. Оплата и ограничения тарифов пока не подключены.</p></div>
+    <div class="grid">
+      <article class="card"><span class="coming">Концепция тарифа</span><h3>Старт</h3><div class="price">990 ₽ <small>/ месяц</small></div><ul class="list"><li>Базовые сценарии</li><li>Шаблоны сообщений</li><li>Подходит для тестирования идеи</li></ul><a class="btn secondary" href="#start">Узнать о запуске</a></article>
+      <article class="card" style="border-color:#8063d9;box-shadow:0 12px 45px #6b4ad31a"><span class="coming">Популярный · концепция</span><h3>Бизнес</h3><div class="price">2 490 ₽ <small>/ месяц</small></div><ul class="list"><li>Несколько сценариев</li><li>Цепочки сообщений</li><li>Планируемая аналитика</li></ul><a class="btn" href="#start">Узнать о запуске</a></article>
+      <article class="card"><span class="coming">Концепция тарифа</span><h3>PRO</h3><div class="price">4 990 ₽ <small>/ месяц</small></div><ul class="list"><li>Расширенные сценарии</li><li>Инструменты для команд</li><li>Дополнительные возможности</li></ul><a class="btn secondary" href="#start">Узнать о запуске</a></article>
+    </div>
+  </div>
+</section>
+<section class="section wrap" id="start">
+  <div class="cta"><div class="eyebrow">Ранний доступ</div><h2>Хочешь попробовать VetaStart?</h2><p>Оставь контакт, чтобы выразить интерес к будущему сервису. Эта форма пока демонстрационная и не отправляет данные на сервер.</p>
+    <form class="contact" id="interestForm"><label for="email" class="sr-only" style="position:absolute;left:-9999px">Email</label><input id="email" type="email" placeholder="Твой email" required><button class="btn" type="submit">Оставить заявку</button></form><div id="formResult" class="toast" role="status">Спасибо! Это демо-форма: данные никуда не отправлены. Подключим её позже.</div><div class="formnote">Никаких обещаний автоматизации до подключения интеграции.</div>
+  </div>
+</section>
+</main>
+<footer class="wrap footer"><span>© 2026 VetaStart</span><span>Концепция сервиса автоматизации Instagram</span><a href="#top">Наверх ↑</a></footer>
+<script>
+document.getElementById('interestForm').addEventListener('submit',function(e){e.preventDefault();document.getElementById('formResult').classList.add('show');});
+</script>
+</body>
+</html>
