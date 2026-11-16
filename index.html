@@ -9,13 +9,210 @@
 :root{--bg:#0d0b16;--panel:#171426;--text:#f8f7ff;--muted:#b9b3d0;--purple:#9878ff;--pink:#ed8dff;--line:#302944}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#30205b 0,transparent 36%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}.wrap{width:min(1120px,92%);margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}.brand{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:800;letter-spacing:-.04em}.logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--pink));font-weight:900;color:#fff}.navlinks{display:flex;gap:24px;color:var(--muted);font-size:.94rem}.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:13px;padding:13px 19px;background:linear-gradient(135deg,var(--purple),#7451ec);color:#fff;font-weight:750;cursor:pointer;box-shadow:0 8px 28px #7451ec35}.btn.secondary{background:#ffffff0c;border:1px solid var(--line);box-shadow:none}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;padding:72px 0 82px}.eyebrow{display:inline-flex;gap:8px;align-items:center;border:1px solid #6f58a8;background:#6c4bc21c;color:#d6c9ff;border-radius:999px;padding:7px 12px;font-size:.83rem;font-weight:650}.dot{width:7px;height:7px;border-radius:50%;background:#9dffcb;box-shadow:0 0 12px #9dffcb}h1{font-size:clamp(2.6rem,5.5vw,4.6rem);line-height:1.04;letter-spacing:-.065em;margin:22px 0}h1 span{background:linear-gradient(90deg,#b9a6ff,#f1a5ff);color:transparent;background-clip:text}.lead{font-size:1.13rem;color:var(--muted);max-width:590px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 18px}.note{font-size:.82rem;color:#8f88a9}.mock{border:1px solid #4c3b6a;background:linear-gradient(145deg,#211b36,#13101f);border-radius:24px;padding:22px;box-shadow:0 28px 90px #0008;transform:rotate(1deg)}.mocktop{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.pill{font-size:.75rem;border:1px solid #3c3155;border-radius:99px;padding:5px 9px;color:#d9ccff}.flowcard{background:#100d1c;border:1px solid #3b3052;border-radius:15px;padding:15px;margin:10px 0}.flowtitle{font-weight:750}.small{font-size:.83rem;color:var(--muted)}.arrow{text-align:center;color:#a891ff;font-size:1.4rem;line-height:1.5}.message{border-radius:12px;background:#30224d;padding:13px;margin-top:9px;font-size:.91rem}.section{padding:68px 0}.sectionhead{text-align:center;max-width:680px;margin:0 auto 34px}.sectionhead h2{font-size:clamp(1.9rem,3.5vw,2.8rem);letter-spacing:-.05em;line-height:1.15;margin:12px 0}.sectionhead p{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:linear-gradient(150deg,#1c172b,#13101e);border:1px solid var(--line);border-radius:19px;padding:23px}.icon{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;background:#8c6aff24;color:#c7b7ff;font-size:1.25rem}.card h3{margin:16px 0 7px}.card p{color:var(--muted);font-size:.94rem;margin-bottom:0}.demo{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}.steps{display:grid;gap:12px}.step{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--line);background:#ffffff05;border-radius:15px}.num{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#8e6dff28;color:#d5c8ff;font-weight:800}.step p{margin:4px 0 0;color:var(--muted);font-size:.91rem}.price{font-size:2.25rem;font-weight:850;letter-spacing:-.05em;margin:12px 0}.price small{font-size:.9rem;color:var(--muted);font-weight:500;letter-spacing:0}.list{padding:0;list-style:none;color:var(--muted);font-size:.93rem}.list li{margin:10px 0}.list li:before{content:"✓";color:#a995ff;margin-right:9px;font-weight:900}.coming{font-size:.76rem;display:inline-block;border:1px solid #66518e;color:#d6c8ff;border-radius:99px;padding:5px 9px;margin-bottom:8px}.cta{border:1px solid #4d3c71;border-radius:25px;padding:38px;background:radial-gradient(ellipse at 100% 0%,#5a388d55,transparent 50%),#171326;text-align:center}.cta h2{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.15;letter-spacing:-.05em;margin:10px 0}.cta p{color:var(--muted);max-width:610px;margin:0 auto 23px}.footer{border-top:1px solid var(--line);padding:24px 0;color:#928ba9;font-size:.84rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media(max-width:800px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding:45px 0 55px;gap:32px}.mock{transform:none}.grid{grid-template-columns:1fr}.demo{grid-template-columns:1fr}.section{padding:48px 0}.cta{padding:27px 18px}}
+
+/* VetaStart: refreshed funnel builder preview */
+.mock{min-width:0;transform:none;border:1px solid #4a3b6b;background:linear-gradient(165deg,#211a36 0%,#151122 100%);border-radius:24px;padding:22px;box-shadow:0 26px 70px #0006;overflow:hidden}
+.mocktop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 23px}
+.mock-brand{display:flex;align-items:center;gap:12px;min-width:0}.mock-brand .logo{flex-shrink:0;width:40px;height:40px}.mock-brand strong{display:block;font-size:1rem;line-height:1.25;letter-spacing:-.025em}.mock-brand span:not(.logo){display:block;color:var(--muted);font-size:.75rem;margin-top:3px}
+.mock .pill{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 10px;color:#d3c6ff;border-color:#554473;background:#ffffff08;font-size:.73rem}.pill-dot{height:6px;width:6px;border-radius:50%;background:#b69aff}
+.mock-intro{display:flex;justify-content:space-between;gap:12px;color:#d6c9ef;font-size:.75rem;margin-bottom:14px}.mock-intro span{color:#998dad}
+.mock .flowcard{position:relative;margin:0;background:#120f20;border:1px solid #413453;border-radius:16px;padding:17px;min-width:0}
+.flow-head{display:flex;align-items:center;gap:11px;margin-bottom:16px;min-width:0}.flow-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border:1px solid #5b4681;border-radius:11px;background:#34244f;color:#d8bdff;font-size:1.1rem;font-weight:700}.flow-kicker{color:#b69bdc;letter-spacing:.095em;font-size:.66rem;font-weight:750;margin-bottom:3px}.mock .flowtitle{font-size:.94rem;line-height:1.35;letter-spacing:-.01em}.flow-label{display:block;font-size:.72rem;color:#bdb0d2;margin-bottom:6px}.flow-input{display:block;width:100%;min-width:0;border:1px solid #52416e;border-radius:10px;padding:11px 12px;background:#2b2043;color:#fff;font:inherit;font-size:.86rem;line-height:1.4;outline:none;transition:border-color .2s,box-shadow .2s}.flow-input:focus{border-color:#b49aff;box-shadow:0 0 0 3px #9878ff22}.flow-textarea{resize:vertical;min-height:86px}.flow-connector{height:34px;display:flex;align-items:center;justify-content:center;position:relative;color:#bea8ff}.flow-connector::before{content:"";position:absolute;top:0;bottom:0;width:1px;background:#6e54a0;opacity:.6}.flow-connector span{position:relative;background:#1c162d;padding:0 8px;font-size:1.05rem;line-height:1.3}.mock-bottom{display:flex;align-items:center;gap:9px;color:#9e91b7;font-size:.71rem;margin-top:17px;line-height:1.45}.mock-indicator{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#ac8aff}
+@media(max-width:800px){.mock{padding:18px}}@media(max-width:390px){.mock{padding:14px}.mock-brand strong{font-size:.87rem}.mock-brand span:not(.logo){font-size:.68rem}.mock .flowcard{padding:13px}}
+
+/* Multiple keyword funnels and link editor */
+.funnel-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 15px}.funnel-tab{border:1px solid #55436d;background:#241b37;color:#d5c8ee;border-radius:99px;padding:7px 12px;cursor:pointer;font:inherit;font-size:.78rem;font-weight:700;max-width:100%;overflow-wrap:anywhere}.funnel-tab[aria-pressed="true"]{background:#7150ca;border-color:#a386fa;color:#fff}.flow-add{border:1px dashed #755ca1;background:#8f69ee18;color:#e6d9ff;border-radius:11px;display:block;width:100%;padding:10px 12px;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;margin-top:10px}.flow-add:hover,.funnel-tab:hover{border-color:#bd9cff}.flow-add-funnel{margin:15px 0 0}.demo-links{display:grid;gap:10px}.demo-link-row{border:1px solid #413453;border-radius:12px;padding:11px;background:#1c152d;min-width:0}.demo-link-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.demo-link-head .flow-label{margin:0}.demo-remove{border:0;background:transparent;color:#dfb6f4;font-size:.78rem;cursor:pointer}.demo-link-row .flow-input{width:100%;margin-top:6px}.demo-link-row .flow-input:first-of-type{margin-top:0}.demo-preview{margin-top:14px;border:1px solid #594579;border-radius:15px;background:#2b2044;padding:15px;min-width:0}.preview-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.89rem;margin:7px 0}.preview-links{display:grid;gap:6px}.preview-link{color:#dbc8ff;overflow-wrap:anywhere;font-size:.84rem;text-decoration:underline;text-underline-offset:3px}.preview-placeholder{color:#b5a7cd;font-size:.82rem}.flow-input{max-width:100%;min-width:0}.mock-bottom{line-height:1.5}
+
+/* VetaStart: multi-choice funnel editor */
+.branch-builder{transform:none!important;max-width:620px;width:100%;margin-inline:auto;min-width:0}
+.branch-builder .mocktop{gap:10px;flex-wrap:wrap}
+.branch-builder .brand{font-size:1.08rem;letter-spacing:-.025em}
+.branch-eyebrow{font-size:.7rem;letter-spacing:.11em;color:#c4b1fb;font-weight:800;margin:12px 0 8px}
+.branch-card{border:1px solid #493667;border-radius:16px;background:#151123;padding:16px;display:grid;gap:9px}
+.branch-card label,.branch-choice label{font-size:.82rem;font-weight:650;color:#ded6f7;display:grid;gap:6px}
+.branch-builder .flow-input{display:block;width:100%;min-width:0;padding:10px 12px;background:#2c2244;color:#fff;border:1px solid #544070;border-radius:11px;font:inherit;font-size:.9rem;outline:none}
+.branch-builder .flow-input:focus{border-color:#b39afa;box-shadow:0 0 0 3px #9878ff30}
+.branch-builder textarea{resize:vertical;line-height:1.5}
+.trigger-types{display:flex;gap:16px;flex-wrap:wrap}.trigger-types label{display:flex;align-items:center;gap:7px;color:#d7c9f7;font-size:.82rem}.trigger-types input{accent-color:#9878ff}
+.branch-arrow{text-align:center;color:#b8a0ff;font-size:1.6rem;line-height:1.1;padding:10px 0 2px}
+.branch-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.branch-choice{min-width:0;background:#161124;border:1px solid #493667;border-radius:14px;padding:12px;display:grid;gap:10px}
+.branch-number{display:inline-grid;place-items:center;background:#392852;color:#d8c5ff;border-radius:7px;font-weight:800;font-size:.75rem;width:30px;height:25px}
+.branch-choice label{min-width:0;font-size:.72rem;line-height:1.3}
+.branch-choice .flow-input{font-size:.77rem;padding:9px 8px}
+.branch-preview{border:1px solid #514075;border-radius:16px;background:#120f20;padding:14px;margin-top:18px}
+.branch-chat{display:grid;justify-items:start;gap:9px;padding:6px 0}
+.branch-bubble{max-width:96%;padding:11px 14px;white-space:pre-wrap;border-radius:13px;line-height:1.5;font-size:.88rem;overflow-wrap:anywhere}
+.branch-bubble.outgoing{background:#30234c}.branch-bubble.incoming{background:#6746ba;justify-self:end}
+.branch-buttons{display:flex;flex-wrap:wrap;gap:7px}.branch-buttons button{border:1px solid #8669d5;background:#2b2144;color:#f6f1ff;padding:8px 12px;border-radius:12px;font-weight:750;cursor:pointer;font-size:.82rem}.branch-buttons button:hover,.branch-buttons button:focus{background:#6747b4}
+.branch-result-url{font-size:.86rem;color:#d6c2ff;text-decoration:underline;overflow-wrap:anywhere}
+.branch-reset{background:transparent;color:#bba7ee;border:0;padding:8px 0 0;cursor:pointer;font-size:.8rem}
+.branch-note{color:#aaa0c1;font-size:.72rem}
+@media(max-width:1100px){.branch-choice-grid{grid-template-columns:1fr}.branch-choice{gap:9px}.branch-choice .flow-input{font-size:.9rem}}
+@media(max-width:800px){.branch-builder{max-width:100%}}
+
+
+/* Optional follower gate and demo funnel metrics */
+.gate-row{display:flex;align-items:flex-start;gap:10px;font-size:.86rem;color:#e9defe}.gate-row input{accent-color:#a98aff;width:18px;height:18px;margin-top:4px;flex:none}.gate-box{margin-top:12px;border:1px solid #564270;border-radius:14px;padding:13px;background:#251a3c}.gate-box[hidden]{display:none}.gate-hint{font-size:.76rem;color:#b9abd1;margin-top:5px}.metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.metric{border:1px solid #504068;background:#21182f;border-radius:13px;padding:12px}.metric-number{font-size:1.5rem;font-weight:800;color:#eee4ff;display:block}.metric-label{font-size:.75rem;color:#c6b9d8}.metric-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.metric-actions button{cursor:pointer;border:1px solid #72589b;background:#302147;color:#eee4ff;border-radius:9px;padding:8px 10px;font:inherit;font-size:.8rem}.metric-actions button:disabled{opacity:.4;cursor:not-allowed}.metric-disclaimer{font-size:.75rem;color:#c6b9d8}.demo-state{font-size:.8rem;color:#ddcaff;margin-top:8px}
+
+/* Compact full-width composition: no tall empty left column beside the editor */
+.hero{display:flex;flex-direction:column;align-items:stretch;gap:26px;padding:42px 0 54px}
+.hero>div:first-child{max-width:900px}
+.hero h1{max-width:900px;font-size:clamp(2.5rem,5vw,4.2rem)}
+.hero .lead{max-width:780px}
+.branch-builder{max-width:100%;margin:0;box-shadow:0 18px 60px #0004;padding:clamp(16px,2.7vw,32px)}
+.branch-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:750px){.branch-choice-grid{grid-template-columns:1fr}.hero{padding:28px 0 38px;gap:20px}}
+.message-count-control{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.message-count-control select{max-width:115px}
+.optional-message[hidden]{display:none!important}
+.optional-message{margin-top:8px}
+.branch-bubble[hidden]{display:none!important}
+
+/* Up to 10 independent scenarios per Instagram account (local demo) */
+.scenarios-panel{background:#161125;border:1px solid #5b467b;border-radius:16px;padding:15px;margin:8px 0 20px}
+.scenarios-header{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
+.scenarios-header strong{font-size:.95rem}.scenario-counter{font-size:.78rem;color:#d1baff}
+.scenario-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.scenario-item{display:flex;gap:7px;align-items:center;min-width:0;padding:8px;border:1px solid #48355e;border-radius:11px;background:#221934}
+.scenario-pick{border:0;flex:1;min-width:0;background:none;color:#eee6ff;cursor:pointer;text-align:left;font:inherit;font-size:.8rem;overflow-wrap:anywhere;padding:2px}
+.scenario-pick.selected{color:#e6d4ff;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.scenario-active{accent-color:#9e7afd;width:16px;height:16px;flex:none;cursor:pointer}
+.scenario-add{margin-top:10px;padding:9px 13px;border:1px solid #8c6ac7;background:#3d2c61;color:white;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+.scenario-add:disabled{opacity:.4;cursor:not-allowed}
+.scenario-name-line{margin:11px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.scenario-name-line label{font-size:.78rem;color:#d2c1eb}.scenario-name-line input{flex:1;min-width:150px}
+.scenario-hint{font-size:.73rem;color:#b6a6ca;margin-top:10px;line-height:1.45}
+.scenario-error{font-size:.78rem;color:#ffd0d0;min-height:1em;margin-top:7px}
+/* Account workspace */
+.account-panel{border:1px solid #59467e;background:linear-gradient(135deg,#241a3c,#171123);border-radius:16px;padding:16px;margin:0 0 16px}
+.account-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.account-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+.account-grid label{display:block;font-size:.77rem;color:#d6c4ef;margin-bottom:5px}
+.account-panel select{width:100%;background:#110e20;color:#fff;border:1px solid #68508f;border-radius:10px;padding:12px;font:inherit;min-width:0}
+.account-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.account-actions button{border:1px solid #69518f;border-radius:10px;background:#34264e;color:#fff;padding:9px 12px;font:inherit;font-size:.83rem;cursor:pointer}
+.account-actions button:disabled{opacity:.45;cursor:not-allowed}
+.account-note{font-size:.77rem;color:#c7b8de;margin-top:10px}
+.bill-calculator{border:1px solid #534073;border-radius:15px;background:#1c1630;padding:17px;margin-top:18px}
+.bill-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.bill-total{font-size:1.55rem;font-weight:800;color:#e2d4ff}
+.bill-details{font-size:.9rem;color:#c2b5d8;margin-top:7px}
+@media(max-width:520px){.scenario-list{grid-template-columns:1fr}.account-grid{grid-template-columns:1fr}}
+
+
+/* Repeatable choices with conversation history */
+.branch-history{display:grid;justify-items:start;gap:9px;width:100%;margin:8px 0}
+.branch-history:empty{display:none}
+.branch-history .incoming{justify-self:end}
+.branch-preview-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.branch-back{background:#7953d4;color:#fff;border:1px solid #a78af5;border-radius:11px;padding:9px 14px;font-weight:750;cursor:pointer}
+.branch-back:hover,.branch-back:focus{background:#6642bd}
+.branch-preview .branch-buttons button:focus-visible{outline:3px solid #b89bff;outline-offset:2px}
+
+/* Кабинет VetaStart v1 */
+.cabinet{max-width:970px;margin:0 auto;border:1px solid var(--line);border-radius:24px;padding:26px;background:var(--panel);box-shadow:0 12px 38px #0002}
+.cabinet [hidden]{display:none!important}
+.cabinet h2{margin:0 0 8px;font-size:clamp(1.5rem,3vw,2.1rem)}
+.cabinet-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.cabinet-card{padding:19px;border:1px solid var(--line);border-radius:17px;background:var(--bg)}
+.cabinet-field{display:block;margin:12px 0}.cabinet-field span{display:block;font-size:.89rem;color:var(--muted);margin-bottom:5px}
+.cabinet-field input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);font:inherit;background:var(--panel);color:var(--text)}
+.cabinet button{font:inherit}.cabinet #db-add-account,.cabinet #db-delete-account,.cabinet #db-save-scenario,.cabinet #db-open-scenario,.cabinet #db-update-scenario,.cabinet #db-delete-scenario{margin:5px 6px 5px 0;padding:9px 12px;font-size:.85rem}.cabinet select{width:100%;padding:11px;border-radius:11px;background:var(--panel);color:var(--text);border:1px solid var(--line)}.cabinet-status{color:var(--muted);font-size:.91rem;min-height:1.3em}
+.cabinet-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.cabinet-chip{border:1px solid var(--line);padding:6px 11px;border-radius:40px;color:var(--muted);font-size:.85rem}
+@media(max-width:700px){.cabinet-grid{grid-template-columns:1fr}.cabinet{padding:18px}}
 </style>
+
+
+
+<style>
+.theme-toggle{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;min-height:43px;border:1px solid #69528a;border-radius:12px;background:#251b39;color:#f6edff;font:inherit;font-size:.87rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s}
+.theme-toggle:hover{background:#35254e;border-color:#a084e8}
+.theme-toggle:focus-visible{outline:3px solid #ac8af5;outline-offset:3px}
+.theme-icon{font-size:1.05rem;line-height:1}
+.nav-actions{display:flex;align-items:center;gap:10px}
+@media(max-width:460px){.nav{gap:12px;flex-wrap:wrap}.nav-actions{margin-left:auto}.nav-actions .btn{padding:10px 12px}.theme-toggle{padding:9px 11px}}
+</style>
+<style id="vetastart-light-theme" media="not all">
+/* VetaStart light comparison theme — visual styling only */
+:root{--bg:#f8f7fd;--panel:#ffffff;--text:#25203a;--muted:#6e6682;--purple:#7453d9;--pink:#b27de5;--line:#e5def2;color-scheme:light}
+body{background:radial-gradient(ellipse at 85% 0%,#eee4ff 0,transparent 35%),linear-gradient(180deg,#faf9ff 0%,#f4f1fb 100%);color:var(--text)}
+h1 span{background:linear-gradient(90deg,#5939b8,#9d50b7);background-clip:text;color:transparent}
+.logo{color:#fff}
+.navlinks,.lead,.sectionhead p,.card p,.step p,.list,.price small{color:var(--muted)}
+.note{color:#756b88}
+.btn{background:linear-gradient(135deg,#7b55dc,#6542cb);color:white;box-shadow:0 8px 24px #7858ce26}
+.btn.secondary{background:#fff;border-color:#dbd2ec;color:#503699;box-shadow:0 4px 15px #3e20610c}
+.eyebrow{color:#65439c;background:#f0e9ff;border-color:#d6c6f3}
+.mock,.branch-builder{background:linear-gradient(165deg,#fff 0%,#faf8ff 100%);border-color:#e0d6f1;box-shadow:0 20px 65px #4a2c7714}
+.mock .pill{color:#6046a2;background:#f4edff;border-color:#dfd3f2}
+.mock-brand span:not(.logo),.mock-intro span,.small,.branch-note{color:#776b8d}
+.mock-intro{color:#5f4d82}
+.mock .flowcard,.flowcard,.branch-card,.branch-choice,.branch-preview{background:#fff;border-color:#e3d9f0;color:#29223d}
+.flow-icon,.branch-number{background:#eee5ff;color:#6440b8;border-color:#d8c6f2}
+.flow-kicker,.branch-eyebrow{color:#7651b6}
+.flow-label,.branch-card label,.branch-choice label,.trigger-types label,.gate-row{color:#4f4167}
+.branch-builder .flow-input,.account-panel select{background:#fff;color:#29223d;border-color:#d6cae8}
+.branch-builder .flow-input:focus,.account-panel select:focus{border-color:#8a66d8;box-shadow:0 0 0 3px #a487e83b}
+.branch-bubble.outgoing{background:#eee8fb;color:#392b5e}
+.branch-bubble.incoming{background:#7551d0;color:#fff}
+.branch-buttons button{background:#f2eaff;border-color:#c9b6ed;color:#52358f}
+.branch-buttons button:hover,.branch-buttons button:focus{background:#e6d8fc}
+.branch-result-url,.branch-reset{color:#6941c2}
+.gate-box{background:#f7f2ff;border-color:#ddcef0}
+.gate-hint{color:#73668a}
+.scenarios-panel{background:#f7f2ff;border-color:#dfd3ef}
+.scenario-counter,.scenario-name-line label,.scenario-hint{color:#675384}
+.scenario-item{background:#fff;border-color:#dfd5ec}
+.scenario-pick{color:#352947}.scenario-pick.selected{color:#6741bc}
+.scenario-add{background:#7650ce;border-color:#7650ce;color:#fff}
+.scenario-error{color:#b13d52}
+.account-panel{background:linear-gradient(135deg,#f5efff,#fff);border-color:#dfd1f0}
+.account-grid label,.account-note{color:#665381}
+.account-actions button{background:#fff;border-color:#d5c5e9;color:#573c90}
+.bill-calculator{background:#f8f4ff;border-color:#dfd1f0}
+.bill-total{color:#5c3daf}.bill-details{color:#6d6083}
+.metric{background:#fff;border-color:#e1d8ee;color:#312548}
+.card{background:linear-gradient(155deg,#fff,#faf8ff);border-color:#e4dbef;box-shadow:0 8px 28px #5741780a}
+.icon,.num{background:#f0e8ff;color:#7049c4}
+.step{background:#ffffffd9;border-color:#e5dcf0}
+.coming{color:#6e4aaa;border-color:#d6c6ed;background:#f7f1ff}
+.cta{background:radial-gradient(ellipse at 100% 0%,#eadcff,transparent 55%),#fff;border-color:#e1d2f2}
+.footer{color:#857893}
+.pill{color:#684e9c;border-color:#d9ccef}
+.funnel-tab{background:#fff;color:#614b83;border-color:#dccfed}
+.funnel-tab[aria-pressed="true"]{background:#7450cd;color:#fff;border-color:#7450cd}
+.flow-add{background:#f6f0ff;color:#6748a7;border-color:#bda7e4}
+.message{background:#f2ebff;color:#3d2c63}
+/* Pricing inline styles from the older dark demo */
+#bill-accounts{background:#fff!important;color:#2e2540!important;border-color:#cec0e5!important}
+label[for="bill-accounts"]{color:#624e7a!important}
+/* Footer Meta informational section remains readable in the light version */
+section[style*="background:#21133b"]{background:#f0e8ff!important;color:#29213e!important;border:1px solid #dfd2ef}
+section[style*="background:#21133b"] a{color:#fff!important}
+
+/* Theme toggle and repeat-choice controls */
+.theme-toggle{background:#fff!important;color:#493281!important;border-color:#d6c7ed!important}
+.theme-toggle:hover{background:#efe7ff!important}
+.branch-back{background:#7550cd;color:#fff}
+.branch-history .branch-bubble.outgoing{color:#392b5e}
+
+</style>
+<script>
+(function(){
+  try { if (localStorage.getItem('vetastart-theme') === 'light') document.getElementById('vetastart-light-theme').media = 'all'; } catch(e) {}
+})();
+</script>
 </head>
-<body>
+<body id="top">
 <header class="wrap nav">
   <a class="brand" href="#" aria-label="VetaStart — главная"><span class="logo">V</span> VetaStart</a>
   <nav class="navlinks"><a href="#how">Как работает</a><a href="#features">Возможности</a><a href="#plans">Тарифы</a></nav>
-  <a class="btn secondary" href="#start">Начать</a>
+  <div class="nav-actions">
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false" aria-label="Переключить на светлую тему"><span class="theme-icon" id="theme-icon" aria-hidden="true">☀</span><span id="theme-label">Светлая тема</span></button>
+    <a class="btn secondary" href="#cabinet">Личный кабинет</a>
+  </div>
 </header>
 <main>
 <section class="wrap hero">
@@ -26,13 +223,73 @@
     <div class="actions"><a class="btn" href="#start">Попробовать VetaStart ↗</a><a class="btn secondary" href="#how">Посмотреть пример</a></div>
     <p class="note">Первая версия проекта · Интеграция Instagram ещё в разработке</p>
   </div>
-  <div class="mock" aria-label="Пример автоматической воронки">
-    <div class="mocktop"><div class="brand"><span class="logo">V</span> <span>Конструктор воронок</span></div><span class="pill">Пример</span></div>
-    <div class="flowcard"><div class="small">ТРИГГЕР</div><div class="flowtitle">Комментарий содержит слово</div><div class="message">ГАЙД</div></div>
-    <div class="arrow">↓</div>
-    <div class="flowcard"><div class="small">ДЕЙСТВИЕ</div><div class="flowtitle">Отправить сообщение в Direct</div><div class="message">Привет! ✨ Спасибо за интерес. Вот твой гайд: example.com/guide</div></div>
-    <div class="arrow">↓</div>
-    <div class="flowcard"><div class="small">СЛЕДУЮЩИЙ ШАГ</div><div class="flowtitle">Предложить продукт или консультацию</div><div class="small">Настраивается в сценарии</div></div>
+  <div class="mock branch-builder" aria-label="Демонстрация конструктора воронки с выбором">
+    <div class="mocktop"><div class="brand"><span class="logo">V</span><span>Воронка с выбором</span></div><span class="pill">Демо</span></div>
+
+    <div class="account-panel" aria-label="Управление Instagram-аккаунтами">
+      <div class="account-header"><strong>Мои Instagram-аккаунты</strong><span class="pill" id="account-count">1 аккаунт</span></div>
+      <div class="account-grid"><div><label for="account-select">Выбранный аккаунт</label><select id="account-select" aria-label="Выбрать Instagram-аккаунт"></select></div><span class="pill">до 10 сценариев на аккаунт</span></div>
+      <div class="account-actions"><button type="button" id="account-add">+ Добавить аккаунт</button><button type="button" id="account-remove">Удалить выбранный</button></div>
+      <div class="account-note">Первые 3 аккаунта включены в тариф. С 4-го — +299 ₽/мес за каждый. Здесь создаются демонстрационные рабочие пространства, подключение через Meta пока не активно.</div>
+    </div>
+    <div class="scenarios-panel" id="scenarios-panel">
+      <div class="scenarios-header"><strong>Мои сценарии · выбранный аккаунт</strong><span class="scenario-counter" id="scenario-counter">1 из 10 активных</span></div>
+      <div class="scenario-list" id="scenario-list" aria-label="Сценарии и переключатели активности"></div>
+      <button class="scenario-add" id="scenario-add" type="button">+ Новый сценарий</button>
+      <div class="scenario-name-line"><label for="scenario-name">Название выбранного сценария</label><input class="flow-input" id="scenario-name" maxlength="48" value="Приветствие" /></div>
+      <div id="scenario-error" class="scenario-error" aria-live="polite"></div>
+      <div class="scenario-hint">Можно включить до 10 сценариев одновременно. Каждому активному сценарию нужен уникальный ключ (например, СТАРТ, КУРС, ГАЙД). Настройки сохраняются только в этом браузере; для работы на Instagram и нескольких устройствах потребуется сервер и подключение Meta.</div>
+    </div>
+    <div class="branch-eyebrow">01 · КОГДА ЗАПУСКАТЬ</div>
+    <div class="branch-card">
+      <label for="branch-trigger">Ключевое слово</label>
+      <input id="branch-trigger" class="flow-input" value="СТАРТ" maxlength="40" />
+      <div class="trigger-types"><label><input type="checkbox" id="branch-comment" checked> Комментарий</label><label><input type="checkbox" id="branch-dm" checked> Direct</label></div>
+    </div>
+    <div class="gate-box">
+      <label class="gate-row"><input type="checkbox" id="follow-gate"> <span><strong>Проверять подписку перед выдачей материала</strong><br><span class="gate-hint">Необязательная функция. Реальная автоматическая проверка зависит от разрешений Meta и используемого Instagram API.</span></span></label>
+      <div id="gate-details" hidden style="margin-top:12px"><label for="gate-message" class="flow-label">Сообщение, если человек пока не подписан</label><textarea id="gate-message" class="flow-input" rows="2">Подпишись на мой Instagram 💜 Затем нажми «Проверить подписку», чтобы получить материал.</textarea><div class="gate-hint">Демо показывает экран проверки, но не обращается к Instagram.</div></div>
+    </div>
+    <div class="branch-arrow">↓</div>
+    <div class="branch-eyebrow">02 · ПЕРВОЕ СООБЩЕНИЕ</div>
+    <div class="branch-card">
+      <label for="message-count">Количество сообщений в цепочке</label>
+      <div class="message-count-control"><select id="message-count" class="flow-input" aria-label="Количество сообщений"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><span class="branch-note">В демонстрации показываются по порядку; реальная отправка зависит от правил Meta.</span></div>
+      <label for="branch-intro">Сообщение 1 — приветствие и варианты</label>
+      <textarea id="branch-intro" class="flow-input" rows="3">Привет! 💜 Что тебе интересно? Выбери вариант ниже:</textarea>
+      <div id="message-2-wrap" class="optional-message" hidden><label for="branch-message-2">Сообщение 2</label><textarea id="branch-message-2" class="flow-input" rows="2">Я помогу тебе выбрать подходящий вариант 💜</textarea></div>
+      <div id="message-3-wrap" class="optional-message" hidden><label for="branch-message-3">Сообщение 3</label><textarea id="branch-message-3" class="flow-input" rows="2">Нажми на кнопку ниже, чтобы получить материал или перейти по ссылке.</textarea></div>
+      <div id="message-4-wrap" class="optional-message" hidden><label for="branch-message-4">Сообщение 4</label><textarea id="branch-message-4" class="flow-input" rows="2">Если остались вопросы, выбери подходящий вариант ниже.</textarea></div>
+      <div id="message-5-wrap" class="optional-message" hidden><label for="branch-message-5">Сообщение 5</label><textarea id="branch-message-5" class="flow-input" rows="2">Готово! Выбирай, что тебе интересно 💜</textarea></div>
+      <div class="branch-note">Кнопки выбора появляются после выбранного количества сообщений. При комментарии начало переписки и следующие сообщения зависят от правил Meta.</div>
+    </div>
+    <div class="branch-arrow">↓</div>
+    <div class="branch-eyebrow">03 · ТРИ ВАРИАНТА ОТВЕТА</div>
+    <div class="branch-choice-grid" id="branch-editor">
+      <div class="branch-choice"><div class="branch-number">01</div><label>Текст кнопки <input class="flow-input branch-label" maxlength="20" value="ПРОМТ" /></label><label>Ответ после выбора <textarea class="flow-input branch-reply" rows="2">Лови полезный промт! ✨</textarea></label><label>Ссылка на промт <input class="flow-input branch-url" placeholder="https://..." value="" /></label></div>
+      <div class="branch-choice"><div class="branch-number">02</div><label>Текст кнопки <input class="flow-input branch-label" maxlength="20" value="КУРС" /></label><label>Ответ после выбора <textarea class="flow-input branch-reply" rows="2">Вот ссылка на обучение 💜</textarea></label><label>Ссылка на курс <input class="flow-input branch-url" placeholder="https://..." value="" /></label></div>
+      <div class="branch-choice"><div class="branch-number">03</div><label>Текст кнопки <input class="flow-input branch-label" maxlength="20" value="ЛК" /></label><label>Ответ после выбора <textarea class="flow-input branch-reply" rows="2">Хочешь личную консультацию? Напиши мне в Telegram.</textarea></label><label>Ссылка на твой Telegram <input class="flow-input branch-url" placeholder="https://t.me/твой_ник" value="" /></label></div>
+    </div>
+    <div class="branch-preview">
+      <div class="branch-eyebrow">ПРЕДПРОСМОТР СООБЩЕНИЙ</div>
+      <div class="branch-chat"><div class="branch-bubble outgoing" id="branch-preview-intro"></div><div class="branch-bubble outgoing" id="branch-preview-message-2" hidden></div><div class="branch-bubble outgoing" id="branch-preview-message-3" hidden></div><div class="branch-bubble outgoing" id="branch-preview-message-4" hidden></div><div class="branch-bubble outgoing" id="branch-preview-message-5" hidden></div><div class="branch-buttons" id="branch-preview-buttons"></div><div class="branch-history" id="branch-history" aria-live="polite"></div><div class="branch-bubble incoming" id="branch-user-choice" hidden></div><div class="branch-bubble outgoing" id="branch-result" hidden></div><a id="branch-result-url" class="branch-result-url" target="_blank" rel="noopener noreferrer" hidden></a></div>
+      <div class="branch-preview-actions"><button type="button" class="branch-back" id="branch-back" hidden>↩ Вернуться к вариантам</button><button type="button" class="branch-reset" id="branch-reset">↻ Начать просмотр заново</button></div><div class="branch-note">Можно выбрать ПРОМТ, затем КУРС или ЛК — все ответы останутся в истории предпросмотра. Это демонстрация, не отправка в Instagram.</div>
+    </div>
+    <div class="branch-eyebrow">04 · АНАЛИТИКА СЦЕНАРИЯ</div>
+    <div class="branch-card">
+      <div class="metric-grid">
+        <div class="metric"><span class="metric-number" id="metric-start">0</span><span class="metric-label">Запусков демо</span></div>
+        <div class="metric"><span class="metric-number" id="metric-select">0</span><span class="metric-label">Выборов кнопок</span></div>
+        <div class="metric"><span class="metric-number" id="metric-link">0</span><span class="metric-label">Кликов по ссылкам в демо</span></div>
+        <div class="metric"><span class="metric-number" id="metric-return">0</span><span class="metric-label">Возвратов (тест)</span></div>
+        <div class="metric"><span class="metric-number" id="metric-buy">0</span><span class="metric-label">Покупок (тест)</span></div>
+        <div class="metric"><span class="metric-number" id="metric-no-buy">0</span><span class="metric-label">Без подтверждённой покупки (тест)</span></div>
+      </div>
+      <div class="metric-actions"><button id="demo-return" type="button">↩ Симулировать возврат</button><button id="demo-buy" type="button">✓ Симулировать покупку</button><button id="demo-reset-stats" type="button">Сбросить демо-статистику</button></div>
+      <div id="demo-events" class="demo-state" aria-live="polite">Событий ещё нет</div>
+      <div class="metric-disclaimer">Счётчики работают только в этой открытой странице и не отражают реальных клиентов. Покупки в рабочем сервисе потребуют подтверждения через платёжный сервис, а возвращения — надёжной идентификации клиента и событий сайта.</div>
+    </div>
+    <div class="mock-bottom"><span class="mock-indicator"></span> Демо: настройки сценариев сохраняются в этом браузере; реальные сообщения не отправляются</div>
   </div>
 </section>
 <section class="section" id="features">
@@ -40,7 +297,7 @@
     <div class="sectionhead"><div class="eyebrow">Меньше рутины — больше общения</div><h2>Инструменты для умных воронок</h2><p>Начни с простой механики и постепенно собирай сценарии под задачи своего бизнеса.</p></div>
     <div class="grid">
       <article class="card"><div class="icon">✉</div><h3>Ответы по кодовому слову</h3><p>Задай слово-триггер и подготовь сообщение, которое должен получить пользователь.</p></article>
-      <article class="card"><div class="icon">⌘</div><h3>Готовые сценарии</h3><p>Используй шаблоны для выдачи гайдов, сбора заявок и знакомства с продуктом.</p></article>
+      <article class="card"><div class="icon">⌘</div><h3>Сценарии с выбором</h3><p>Предлагай три варианта: промт, курс или личную консультацию — у каждого свой ответ и ссылка.</p></article>
       <article class="card"><div class="icon">↗</div><h3>Путь к покупке</h3><p>Продумывай последовательность сообщений, которая помогает человеку сделать следующий шаг.</p></article>
     </div>
   </div>
@@ -57,12 +314,60 @@
 </section>
 <section class="section" id="plans">
   <div class="wrap">
-    <div class="sectionhead"><div class="eyebrow">Планы на запуск</div><h2>Понятные тарифы</h2><p>Цены ниже — предварительная концепция. Оплата и ограничения тарифов пока не подключены.</p></div>
-    <div class="grid">
-      <article class="card"><span class="coming">Концепция тарифа</span><h3>Старт</h3><div class="price">990 ₽ <small>/ месяц</small></div><ul class="list"><li>Базовые сценарии</li><li>Шаблоны сообщений</li><li>Подходит для тестирования идеи</li></ul><a class="btn secondary" href="#start">Узнать о запуске</a></article>
-      <article class="card" style="border-color:#8063d9;box-shadow:0 12px 45px #6b4ad31a"><span class="coming">Популярный · концепция</span><h3>Бизнес</h3><div class="price">2 490 ₽ <small>/ месяц</small></div><ul class="list"><li>Несколько сценариев</li><li>Цепочки сообщений</li><li>Планируемая аналитика</li></ul><a class="btn" href="#start">Узнать о запуске</a></article>
-      <article class="card"><span class="coming">Концепция тарифа</span><h3>PRO</h3><div class="price">4 990 ₽ <small>/ месяц</small></div><ul class="list"><li>Расширенные сценарии</li><li>Инструменты для команд</li><li>Дополнительные возможности</li></ul><a class="btn secondary" href="#start">Узнать о запуске</a></article>
+    <div class="sectionhead"><div class="eyebrow">Один тариф — все возможности</div><h2>VetaStart за 990 ₽ в месяц</h2><p>990 ₽/мес включает до 3 аккаунтов. Каждый следующий аккаунт — +299 ₽/мес. Подключение оплаты пока в разработке.</p></div>
+    <article class="card" style="max-width:520px;margin:0 auto;border-color:#8063d9;box-shadow:0 12px 45px #6b4ad31a;text-align:left">
+      <span class="coming">Единый тариф · планируется к запуску</span>
+      <h3>VetaStart</h3>
+      <div class="price">990 ₽ <small>/ месяц</small></div>
+      <ul class="list">
+        <li>Конструктор воронок с ключевыми словами и вариантами выбора</li>
+        <li>Ссылки на сайты, курсы, Telegram и материалы</li>
+        <li>Необязательная проверка подписки</li>
+        <li>Аналитика переходов и действий клиентов</li>
+        <li>До 3 Instagram-аккаунтов включено, каждый следующий +299 ₽/мес</li><li>До 10 активных сценариев на аккаунт · цепочки из 1–5 сообщений</li><li>Шаблоны сообщений и сценариев</li>
+      </ul>
+      <div class="bill-calculator">
+        <div class="bill-head"><strong>Расчёт подписки</strong><span class="bill-total" id="bill-total">990 ₽/мес</span></div>
+        <div class="bill-details" id="bill-details">1 аккаунт · 3 включены в стоимость · доплата 0 ₽</div>
+        <label for="bill-accounts" style="display:block;margin:14px 0 6px;color:#d6c9ee;font-size:.88rem">Сколько аккаунтов планируете подключить?</label>
+        <input id="bill-accounts" type="number" min="1" max="100" value="3" inputmode="numeric" style="width:100%;padding:12px;border:1px solid #6a538b;border-radius:10px;background:#110e20;color:white;font:inherit">
+        <p class="small">Калькулятор предварительный: списания и подключение аккаунтов пока не активированы.</p>
+      </div>
+      <a class="btn" href="#start">Узнать о запуске</a>
+    </article>
+  </div>
+</section>
+<section class="section wrap" id="cabinet">
+  <div class="cabinet">
+    <div class="cabinet-toolbar"><div><span class="eyebrow">Личный кабинет · VetaStart</span><h2>Управляй сервисом самостоятельно</h2></div><span class="cabinet-chip" id="cabinet-indicator">Вход не выполнен</span></div>
+    <p class="small">Тестовый кабинет: регистрация и черновики воронок сохраняются в PostgreSQL. Реальное подключение Meta, отправка сообщений и Робокасса ещё не включены.</p>
+    <div id="cabinet-guest" class="cabinet-grid">
+      <form class="cabinet-card" id="cabinet-register"><h3>Создать аккаунт</h3><label class="cabinet-field"><span>Имя</span><input name="name" autocomplete="name" maxlength="80" required></label><label class="cabinet-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label><label class="cabinet-field"><span>Пароль (не менее 12 символов)</span><input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="btn" type="submit">Зарегистрироваться</button></form>
+      <form class="cabinet-card" id="cabinet-login"><h3>Войти</h3><label class="cabinet-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label><label class="cabinet-field"><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required></label><button class="btn" type="submit">Войти</button></form>
     </div>
+    <div id="cabinet-user" class="cabinet-grid" hidden>
+      <div class="cabinet-card"><h3 id="cabinet-greeting">Мой кабинет</h3><p class="small">Статус подписки: <strong>ожидает подключения оплаты</strong></p><p class="small">В тарифе: 3 аккаунта Instagram; каждый следующий +299 ₽/мес</p><button id="cabinet-logout" class="btn secondary" type="button">Выйти</button></div>
+      <div class="cabinet-card"><h3>Мои инструменты</h3><p class="small">Сохраняй свои сценарии в базе: до 10 включённых сценариев на аккаунт, до 5 сообщений в каждом. Счётчики демо не являются реальной аналитикой.</p><a href="#how" class="btn secondary">Посмотреть конструктор</a></div>
+    </div>
+    <div id="cabinet-projects" class="cabinet-card" hidden>
+      <h3>Мои проекты Instagram</h3>
+      <p class="small">Пока это черновики. Аккаунты не подключены к Meta, а сценарии не отправляют сообщений.</p>
+      <div class="cabinet-grid">
+        <div><label class="cabinet-field"><span>Проект</span><select id="db-account" class="flow-input"></select></label>
+          <button class="btn secondary" id="db-add-account" type="button">+ Добавить черновик аккаунта</button>
+          <button class="btn secondary" id="db-delete-account" type="button">Удалить выбранный черновик</button>
+          <p class="small" id="db-price"></p>
+        </div>
+        <div><label class="cabinet-field"><span>Сохранённые сценарии</span><select id="db-scenario" class="flow-input"></select></label>
+          <button class="btn secondary" id="db-open-scenario" type="button">Открыть выбранную</button><button class="btn" id="db-save-scenario" type="button">Сохранить текущую воронку</button>
+          <button class="btn secondary" id="db-update-scenario" type="button">Обновить выбранный сценарий</button>
+          <button class="btn secondary" id="db-delete-scenario" type="button">Удалить сценарий</button>
+          <p class="small">Сначала настрой воронку выше, затем нажми «Сохранить». По умолчанию это черновик; для включения есть переключатель ниже.</p>
+          <label class="cabinet-field"><span><input id="db-enable-scenario" type="checkbox"> Включить в настройках (не запускает отправку без Meta)</span></label>
+        </div>
+      </div>
+    </div>
+    <p class="cabinet-status" id="cabinet-status" role="status" aria-live="polite"></p>
   </div>
 </section>
 <section class="section wrap" id="start">
@@ -80,5 +385,390 @@
     Подключить Instagram
   </a>
   <p style="font-size:13px;opacity:.75">Переход на Meta для подготовки подключения. Автоматизация пока не активна.</p>
-</section></body>
+</section>
+
+<script>
+(function(){
+  'use strict';
+  const $ = (id)=>document.getElementById(id);
+  const choices=[...document.querySelectorAll('.branch-choice')];
+  const buttons=$('branch-preview-buttons');
+  const intro=$('branch-preview-intro');
+  const user=$('branch-user-choice');
+  const result=$('branch-result');
+  const link=$('branch-result-url');
+  function safeURL(raw){try{const u=new URL(raw);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch(e){return null;}}
+  const counts={start:0,select:0,link:0,return:0,buy:0};
+  let currentBranch=null;
+  function updateMetrics(event){
+    for(const key of Object.keys(counts))if($('metric-'+key))$('metric-'+key).textContent=String(counts[key]);
+    $('metric-no-buy').textContent=String(Math.max(0,counts.select-counts.buy));
+    $('demo-events').textContent=event;
+  }
+  $('follow-gate').addEventListener('change',function(){ $('gate-details').hidden=!this.checked; refresh(); });
+  $('demo-return').addEventListener('click',()=>{counts.return++;updateMetrics('Демо: клиент вернулся к выбору');refresh();});
+  $('demo-buy').addEventListener('click',()=>{if(counts.select>counts.buy){counts.buy++;updateMetrics('Демо: покупка отмечена вручную');}else updateMetrics('Сначала выбери кнопку в предпросмотре');});
+  $('demo-reset-stats').addEventListener('click',()=>{Object.keys(counts).forEach(k=>counts[k]=0);updateMetrics('Демо-статистика сброшена');});
+  const nativeRefresh=refresh;
+
+  const history=$('branch-history');
+  const back=$('branch-back');
+  function bubble(message,type){
+    const el=document.createElement('div');
+    el.className='branch-bubble '+type;
+    el.textContent=message;
+    return el;
+  }
+  function appendSelection(label,reply,raw){
+    history.append(bubble(label,'incoming'));
+    history.append(bubble(reply||'Ответ не задан','outgoing'));
+    const href=safeURL(raw);
+    if(href){
+      const a=document.createElement('a');
+      a.className='branch-result-url';
+      a.href=href;a.target='_blank';a.rel='noopener noreferrer';
+      a.textContent='Открыть материал ↗ '+href;
+      a.addEventListener('click',()=>{counts.link++;updateMetrics('Демо: нажатие на ссылку (открытие не подтверждено)');});
+      history.append(a);
+    }else if(raw){history.append(bubble('Проверьте ссылку: нужен адрес https://...','outgoing'));}
+    back.hidden=false;
+  }
+  function refresh(){
+    const messageCount=Number($('message-count').value)||1;
+    for(let n=2;n<=5;n++){
+      const enabled=n<=messageCount;
+      $('message-'+n+'-wrap').hidden=!enabled;
+      const bubble=$('branch-preview-message-'+n);
+      bubble.hidden=!enabled;
+      bubble.textContent=enabled?($('branch-message-'+n).value.trim()||'Сообщение '+n):'';
+    }
+    intro.textContent=$('follow-gate').checked ? (($('gate-message').value||'Подпишись и проверь подписку')+'\n\n[Демо: проверка подписки не выполняется]\nПосле подтверждения: '+($('branch-intro').value||'')) : ($('branch-intro').value||'Введите сообщение');
+    buttons.replaceChildren(); history.replaceChildren(); back.hidden=true; user.hidden=true;result.hidden=true;link.hidden=true;
+    choices.forEach((choice,index)=>{
+      const label=choice.querySelector('.branch-label').value.trim()||'Вариант '+(index+1);
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.addEventListener('click',()=>{
+        counts.select++; currentBranch=index;updateMetrics('Демо: выбран вариант «'+label+'»');
+        const reply=choice.querySelector('.branch-reply').value.trim();
+        const raw=choice.querySelector('.branch-url').value.trim();
+        appendSelection(label,reply,raw);
+      });
+      buttons.append(button);
+    });
+  }
+  document.querySelectorAll('#branch-editor input,#branch-editor textarea,#branch-intro,#branch-message-2,#branch-message-3,#branch-message-4,#branch-message-5').forEach(el=>el.addEventListener('input',refresh));
+  $('message-count').addEventListener('change',refresh);
+  back.addEventListener('click',()=>{counts.return++;updateMetrics('Демо: возврат к выбору, предыдущие ответы сохранены');const first=buttons.querySelector('button');if(first)first.focus({preventScroll:true});buttons.scrollIntoView({block:'nearest',behavior:'smooth'});});
+  $('branch-reset').addEventListener('click',()=>{counts.start++;updateMetrics('Новый запуск демо');refresh();});
+  link.addEventListener('click',()=>{if(link.href){counts.link++;updateMetrics('Демо: нажатие на ссылку (открытие не подтверждено)');}});
+  counts.start++;updateMetrics('Демо открыто');refresh();
+})();
+</script>
+
+<script>
+/* Local-only scenario collection; no messages are sent to Instagram. */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const MAX = 10;
+  const KEY = 'vetastart_scenarios_demo_v1';
+  const ACCOUNT_KEY = 'vetastart_accounts_demo_v1';
+  const accountSelect = $('account-select');
+  const fieldIds = ['branch-trigger','branch-comment','branch-dm','follow-gate','gate-message','message-count','branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'];
+  const choiceFields = [...document.querySelectorAll('#branch-editor .branch-choice')];
+  const inputs = fieldIds.map($).concat(choiceFields.flatMap(c => [...c.querySelectorAll('input,textarea')]));
+  const readField = el => el.type === 'checkbox' ? el.checked : el.value;
+  function readState() { return {fields: inputs.map(readField)}; }
+  function writeState(data) {
+    inputs.forEach((el,i) => {
+      const value = data && Array.isArray(data.fields) ? data.fields[i] : undefined;
+      if (value === undefined) return;
+      if (el.type === 'checkbox') el.checked = !!value;
+      else el.value = String(value);
+    });
+    $('gate-details').hidden = !$('follow-gate').checked;
+    $('message-count').dispatchEvent(new Event('change', {bubbles:true}));
+    $('branch-intro').dispatchEvent(new Event('input', {bubbles:true}));
+  }
+  const initial = readState();
+  let scenarios = [{name:'Приветствие',active:true,state:initial}];
+  let selected = 0;
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && Array.isArray(raw.scenarios) && raw.scenarios.length && raw.scenarios.length<=MAX) {
+      scenarios = raw.scenarios.filter(s=>s && s.state && Array.isArray(s.state.fields)).slice(0,MAX).map(s=>({name:String(s.name||'Сценарий').slice(0,48), active:!!s.active, state:s.state}));
+      selected = Math.min(Math.max(0,Number(raw.selected)||0),scenarios.length-1);
+    }
+  } catch(e) {}
+  let accounts = [{name:'Instagram 1',scenarios,selected}];
+  let activeAccount = 0;
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACCOUNT_KEY));
+    if (saved && Array.isArray(saved.accounts) && saved.accounts.length) {
+      const validated = saved.accounts.slice(0,100).map((a,i)=>({
+        name:String(a.name||'Instagram '+(i+1)).slice(0,50),
+        scenarios:Array.isArray(a.scenarios)&&a.scenarios.length ? a.scenarios.slice(0,MAX).filter(v=>v&&v.state&&Array.isArray(v.state.fields)):[],
+        selected:Number(a.selected)||0
+      })).filter(a=>a.scenarios.length);
+      if(validated.length) {accounts=validated;activeAccount=Math.min(Math.max(0,Number(saved.activeAccount)||0),accounts.length-1);scenarios=accounts[activeAccount].scenarios;selected=Math.min(Math.max(0,accounts[activeAccount].selected),scenarios.length-1);}
+    }
+  } catch(e) {}
+  function monthlyPrice(n){return 990+Math.max(0,n-3)*299;}
+  const rub = n => new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+  function updateBill() {
+    const input=$('bill-accounts');
+    const n=Math.min(100,Math.max(1,Math.trunc(Number(input.value)||1)));
+    const extra=Math.max(0,n-3);
+    $('bill-total').textContent=rub(monthlyPrice(n))+'/мес';
+    $('bill-details').textContent=n+' аккаунт(ов) · '+Math.min(3,n)+' включено в базовую стоимость · доплата '+rub(extra*299);
+  }
+  $('bill-accounts').addEventListener('input',updateBill);updateBill();
+  function renderAccounts(){
+    accountSelect.replaceChildren();
+    accounts.forEach((a,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=a.name;accountSelect.append(o);});
+    accountSelect.value=String(activeAccount);
+    $('account-count').textContent=accounts.length+' аккаунт(ов)';
+    $('account-add').disabled=accounts.length>=100;
+    $('account-remove').disabled=accounts.length<=1;
+  }
+  function switchAccount(i){
+    if(i===activeAccount)return;
+    accounts[activeAccount].scenarios=scenarios;accounts[activeAccount].selected=selected;
+    activeAccount=i;
+    scenarios=accounts[i].scenarios;
+    selected=Math.min(Math.max(0,Number(accounts[i].selected)||0),scenarios.length-1);
+    writeState(scenarios[selected].state);
+    $('scenario-name').value=scenarios[selected].name;
+    $('scenario-error').textContent='';
+    save();render();renderAccounts();
+  }
+  accountSelect.addEventListener('change',()=>switchAccount(Number(accountSelect.value)));
+  $('account-add').addEventListener('click',()=>{
+    if(accounts.length>=100)return;
+    const index=accounts.length+1;
+    const state={fields:initial.fields.slice()};state.fields[0]='СТАРТ';
+    accounts.push({name:'Instagram '+index,scenarios:[{name:'Приветствие',active:true,state}],selected:0});
+    switchAccount(accounts.length-1);
+    $('bill-accounts').value=String(accounts.length);updateBill();
+  });
+  $('account-remove').addEventListener('click',()=>{
+    if(accounts.length<=1)return;
+    accounts.splice(activeAccount,1);
+    activeAccount=0;scenarios=accounts[0].scenarios;selected=Math.min(Number(accounts[0].selected)||0,scenarios.length-1);
+    writeState(scenarios[selected].state);$('scenario-name').value=scenarios[selected].name;
+    save();render();renderAccounts();$('bill-accounts').value=String(accounts.length);updateBill();
+  });
+  const normalized = value => String(value || '').trim().toLocaleUpperCase('ru-RU');
+  function word(s) { return normalized(s.state.fields[0]); }
+  function collision(index) {
+    const w = word(scenarios[index]);
+    if (!w) return 'Сначала укажи ключевое слово.';
+    if (scenarios.some((x,i)=>i!==index && x.active && word(x)===w))return 'Это ключевое слово уже использует другой активный сценарий.';
+    return '';
+  }
+  function save() {
+    try {localStorage.setItem(KEY,JSON.stringify({scenarios,selected}));
+      accounts[activeAccount].scenarios=scenarios;accounts[activeAccount].selected=selected;
+      localStorage.setItem(ACCOUNT_KEY,JSON.stringify({accounts,activeAccount}));} catch(e) {}
+  }
+  function sync() {
+    if (!scenarios[selected]) return;
+    scenarios[selected].state=readState();
+    const error=scenarios[selected].active?collision(selected):'';
+    if (error) {scenarios[selected].active=false;$('scenario-error').textContent=error+' Сценарий отключён.';}
+    else $('scenario-error').textContent='';
+    save();render();
+  }
+  function render() {
+    const list=$('scenario-list');list.replaceChildren();
+    scenarios.forEach((sc,i)=>{
+      const wrap=document.createElement('div');wrap.className='scenario-item';
+      const active=document.createElement('input');active.type='checkbox';active.className='scenario-active';active.checked=!!sc.active;active.title='Активен';active.setAttribute('aria-label','Активность: '+sc.name);
+      active.addEventListener('change',()=>{
+        if(active.checked){
+          const message=collision(i);
+          if(message){active.checked=false;$('scenario-error').textContent=message;return;}
+          const amount=scenarios.filter(x=>x.active).length;
+          if(amount>=MAX){active.checked=false;$('scenario-error').textContent='Максимум 10 активных сценариев.';return;}
+        }
+        sc.active=active.checked;$('scenario-error').textContent='';save();render();
+      });
+      const pick=document.createElement('button');pick.type='button';pick.className='scenario-pick'+(i===selected?' selected':'');
+      pick.textContent=(i+1)+'. '+sc.name+' · '+(word(sc)||'без слова');
+      pick.addEventListener('click',()=>{ selected=i;writeState(sc.state);$('scenario-name').value=sc.name;$('scenario-error').textContent='';save();render(); });
+      wrap.append(active,pick);list.append(wrap);
+    });
+    const activeCount=scenarios.filter(s=>s.active).length;
+    $('scenario-counter').textContent=activeCount+' из 10 активных · всего '+scenarios.length;
+    $('scenario-add').disabled=scenarios.length>=MAX;
+  }
+  $('scenario-name').addEventListener('input',()=>{scenarios[selected].name=$('scenario-name').value.slice(0,48)||'Сценарий '+(selected+1);save();render();});
+  $('scenario-add').addEventListener('click',()=>{
+    if(scenarios.length>=MAX)return;
+    const n=scenarios.length+1;
+    const state={fields:initial.fields.slice()};state.fields[0]='СЛОВО'+n;
+    scenarios.push({name:'Сценарий '+n,active:true,state});
+    selected=scenarios.length-1;writeState(state);$('scenario-name').value=scenarios[selected].name;$('scenario-error').textContent='';save();render();
+  });
+  inputs.forEach(el=>{el.addEventListener('input',sync);el.addEventListener('change',sync);});
+  writeState(scenarios[selected].state);$('scenario-name').value=scenarios[selected].name;
+  // Validate stored active keywords as well.
+  const seen=new Set();scenarios.forEach(s=>{const w=word(s);if(s.active && (!w||seen.has(w)))s.active=false;else if(s.active)seen.add(w);});
+  save();render();renderAccounts();
+})();
+</script>
+
+
+<script>
+(function(){
+  'use strict';
+  const button=document.getElementById('theme-toggle');
+  const lightCSS=document.getElementById('vetastart-light-theme');
+  if(!button || !lightCSS) return;
+  const label=document.getElementById('theme-label');
+  const icon=document.getElementById('theme-icon');
+  let light=lightCSS.media==='all';
+  function render(){
+    lightCSS.media=light?'all':'not all';
+    document.documentElement.setAttribute('data-theme',light?'light':'dark');
+    document.documentElement.style.colorScheme=light?'light':'dark';
+    button.setAttribute('aria-pressed',String(light));
+    button.setAttribute('aria-label',light?'Переключить на тёмную тему':'Переключить на светлую тему');
+    label.textContent=light?'Тёмная тема':'Светлая тема';
+    icon.textContent=light?'☾':'☀';
+  }
+  button.addEventListener('click',function(){
+    light=!light;render();
+    try{localStorage.setItem('vetastart-theme',light?'light':'dark')}catch(e){}
+  });
+  render();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const msg = text => $('cabinet-status').textContent=text;
+  let currentAccount=null, scenarios=[];
+  async function request(url,method='GET',data){
+    let response;
+    try{response=await fetch(url,{method,credentials:'same-origin',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});}
+    catch{throw new Error('Не удаётся связаться с сервером. Откройте опубликованную тестовую версию.');}
+    let result;
+    try{result=await response.json();}catch{throw new Error('Сервер личного кабинета пока не опубликован.');}
+    if(!response.ok)throw new Error(result.error||'Не удалось выполнить действие');
+    return result;
+  }
+  const val=id=>$(id)?.value||'';
+  function pullBuilder(){
+    const choices=Array.from(document.querySelectorAll('#branch-editor .branch-choice'));
+    const count=Math.max(1,Math.min(5,Number(val('message-count'))||1));
+    const ids=['branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'];
+    const messages=ids.slice(0,count).map(val);
+    return {
+      name:val('scenario-name').trim()||'Новый сценарий',
+      keyword:val('branch-trigger').trim(),
+      trigger_source:$('branch-comment').checked&&$('branch-dm').checked?'both':$('branch-comment').checked?'comment':'dm',
+      enabled:$('db-enable-scenario').checked,
+      follow_gate:$('follow-gate').checked,
+      messages,
+      choices:choices.map(el=>({label:el.querySelector('.branch-label').value,
+        reply:el.querySelector('.branch-reply').value,url:el.querySelector('.branch-url').value}))
+    };
+  }
+  function show(user){
+    $('cabinet-guest').hidden=!!user;$('cabinet-user').hidden=!user;$('cabinet-projects').hidden=!user;
+    $('cabinet-indicator').textContent=user?'Аккаунт активен':'Вход не выполнен';
+    if(user)$('cabinet-greeting').textContent='Здравствуйте, '+user.name+'!';
+  }
+  function listSelect(el,rows,placeholder){
+    el.replaceChildren();
+    if(!rows.length){const o=document.createElement('option');o.value='';o.textContent=placeholder;el.append(o);return;}
+    rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name||r.keyword;el.append(o);});
+  }
+  function applyPrice(b){$('db-price').textContent=`Расчёт: ${b.monthly_rub.toLocaleString('ru-RU')} ₽/месяц за ${b.accounts} проект(ов). Оплата ещё не подключена; создание черновика не является покупкой.`;}
+  async function loadAccounts(preferred){
+    const data=await request('/api/accounts');
+    listSelect($('db-account'),data.accounts,'Нет проектов');
+    const chosen=data.accounts.find(a=>a.id===preferred)||data.accounts[0];
+    currentAccount=chosen?.id||null;
+    if(chosen)$('db-account').value=chosen.id;
+    applyPrice(data.billing);
+    await loadScenarios();
+  }
+  async function loadScenarios(preferred){
+    if(!currentAccount)return;
+    const data=await request('/api/accounts/'+currentAccount+'/scenarios');scenarios=data.scenarios;
+    listSelect($('db-scenario'),scenarios,'Нет сохранённых сценариев');
+    if(preferred&&scenarios.some(s=>s.id===preferred))$('db-scenario').value=preferred;
+    $('db-enable-scenario').checked=false;
+  }
+  async function refresh(){
+    try{const r=await request('/api/auth/me');show(r.user||null);if(r.user)await loadAccounts();}
+    catch{show(null);msg('Кабинет заработает после подключения базы данных и развёртывания тестовой версии.');}
+  }
+  for(const id of ['cabinet-register','cabinet-login'])$(id).addEventListener('submit',async e=>{
+    e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));msg('Проверяем данные…');
+    try{const r=await request('/api/auth/'+(id==='cabinet-register'?'register':'login'),'POST',data);
+      show(r.user);await loadAccounts();e.currentTarget.reset();msg('Вы вошли в личный кабинет.');}
+    catch(err){msg(err.message);}
+  });
+  $('cabinet-logout').addEventListener('click',async()=>{try{await request('/api/auth/logout','POST');show(null);msg('Вы вышли из аккаунта.');}catch(e){msg(e.message);}});
+  $('db-account').addEventListener('change',async()=>{currentAccount=$('db-account').value;try{await loadScenarios();}catch(e){msg(e.message);}});
+  $('db-add-account').addEventListener('click',async()=>{
+    const name=prompt('Название нового проекта Instagram (до 50 символов):');if(!name)return;
+    try{const r=await request('/api/accounts','POST',{name});await loadAccounts(r.account.id);msg('Черновик создан. Instagram пока не подключён.');}
+    catch(e){msg(e.message);}
+  });
+  $('db-delete-account').addEventListener('click',async()=>{
+    if(!currentAccount||!confirm('Удалить выбранный черновик и его сохранённые сценарии?'))return;
+    try{await request('/api/accounts/'+currentAccount,'DELETE');await loadAccounts();msg('Черновик удалён.');}
+    catch(e){msg(e.message);}
+  });
+  $('db-scenario').addEventListener('change',()=>{
+    const selected=scenarios.find(s=>s.id===$('db-scenario').value);
+    $('db-enable-scenario').checked=!!selected?.enabled;
+  });
+  $('db-open-scenario').addEventListener('click',()=>{
+    const s=scenarios.find(x=>x.id===$('db-scenario').value);
+    if(!s)return msg('Сначала выберите сохранённую воронку');
+    const assign=(id,text)=>{const e=$(id);if(e){e.value=text||'';e.dispatchEvent(new Event('input',{bubbles:true}));}};
+    assign('scenario-name',s.name);assign('branch-trigger',s.keyword);
+    $('branch-comment').checked=s.trigger_source!=='dm';$('branch-dm').checked=s.trigger_source!=='comment';
+    $('follow-gate').checked=s.follow_gate;
+    $('follow-gate').dispatchEvent(new Event('change',{bubbles:true}));
+    $('message-count').value=String(s.messages.length);
+    $('message-count').dispatchEvent(new Event('change',{bubbles:true}));
+    ['branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'].forEach((id,i)=>assign(id,s.messages[i]||''));
+    document.querySelectorAll('#branch-editor .branch-choice').forEach((node,i)=>{
+      const ch=s.choices[i];if(!ch)return;
+      for(const [selector,value] of [['.branch-label',ch.label],['.branch-reply',ch.reply],['.branch-url',ch.url]]){
+        const el=node.querySelector(selector);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    });
+    $('db-enable-scenario').checked=s.enabled;
+    msg('Сценарий загружен в конструктор. Измените и нажмите «Обновить выбранный сценарий».');
+    document.getElementById('how')?.scrollIntoView({behavior:'smooth'});
+  });
+  $('db-save-scenario').addEventListener('click',async()=>{
+    if(!currentAccount)return msg('Сначала добавьте аккаунт');
+    try{const r=await request('/api/accounts/'+currentAccount+'/scenarios','POST',pullBuilder());
+      await loadScenarios(r.id);msg('Воронка сохранена в базе. Реальная отправка сообщений не включена.');}
+    catch(e){msg(e.message);}
+  });
+  $('db-update-scenario').addEventListener('click',async()=>{
+    const id=$('db-scenario').value;if(!id)return msg('Выберите сохранённую воронку');
+    try{await request('/api/scenarios/'+id,'PATCH',pullBuilder());await loadScenarios(id);msg('Воронка обновлена.');}
+    catch(e){msg(e.message);}
+  });
+  $('db-delete-scenario').addEventListener('click',async()=>{
+    const id=$('db-scenario').value;if(!id)return msg('Выберите сценарий');
+    if(!confirm('Удалить этот сценарий?'))return;
+    try{await request('/api/scenarios/'+id,'DELETE');await loadScenarios();msg('Сценарий удалён.');}
+    catch(e){msg(e.message);}
+  });
+  refresh();
+})();
+</script>
+</body>
 </html>
