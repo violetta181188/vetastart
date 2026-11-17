@@ -367,6 +367,26 @@ section[style*="background:#21133b"] a{color:#fff!important}
         </div>
       </div>
     </div>
+    <div class="cabinet-grid" id="cabinet-settings" hidden>
+      <form id="cabinet-profile-form" class="cabinet-card">
+        <h3>Настройки профиля</h3>
+        <p class="small">Email: <span id="cabinet-email">—</span></p>
+        <label class="cabinet-field"><span>Имя</span><input id="cabinet-profile-name" name="name" maxlength="80" required autocomplete="name"></label>
+        <button class="btn secondary" type="submit">Сохранить имя</button>
+      </form>
+      <form id="cabinet-password-form" class="cabinet-card">
+        <h3>Безопасность</h3>
+        <label class="cabinet-field"><span>Текущий пароль</span><input type="password" name="currentPassword" required autocomplete="current-password"></label>
+        <label class="cabinet-field"><span>Новый пароль (не менее 12 символов)</span><input type="password" name="newPassword" minlength="12" maxlength="128" required autocomplete="new-password"></label>
+        <button class="btn secondary" type="submit">Изменить пароль</button>
+        <p class="small">После изменения пароля другие сеансы будут завершены.</p>
+      </form>
+      <div class="cabinet-card">
+        <h3>Мои данные</h3>
+        <p class="small">Экспортируй свои черновики аккаунтов и сохранённые воронки в JSON. Пароли в экспорт не включаются.</p>
+        <a class="btn secondary" href="/api/account/export" download="vetastart-export.json">Скачать мои сценарии</a>
+      </div>
+    </div>
     <p class="cabinet-status" id="cabinet-status" role="status" aria-live="polite"></p>
   </div>
 </section>
