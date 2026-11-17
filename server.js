@@ -239,6 +239,47 @@ app.get('/api/billing/preview',auth,async(req,res,next)=>{
   try{const r=await pool.query('SELECT count(*) AS n FROM instagram_accounts WHERE user_id=$1',[req.user.id]);
     res.json(plan(Number(r.rows[0].n)));}catch(e){next(e);}
 });
+
+app.patch('/api/account/profile',auth,async(req,res,next)=>{
+  const name=cleanName(req.body?.name,80);
+  if(!name)return errMsg(res,400,'Укажите имя длиной до 80 символов');
+  try{
+    const q=await pool.query('UPDATE users SET name=$1 WHERE id=$2 RETURNING id,name,email',[name,req.user.id]);
+    if(!q.rowCount)return errMsg(res,404,'Пользователь не найден');
+    res.json({user:publicUser(q.rows[0])});
+  }catch(e){next(e);}
+});
+app.post('/api/account/change-password',auth,limitAuth,async(req,res,next)=>{
+  const {currentPassword,newPassword}=req.body||{};
+  if(typeof currentPassword!=='string'||typeof newPassword!=='string'||newPassword.length<12||newPassword.length>128)
+    return errMsg(res,400,'Новый пароль должен содержать от 12 до 128 символов');
+  try{
+    const q=await pool.query('SELECT password_hash FROM users WHERE id=$1',[req.user.id]);
+    if(!q.rowCount||!pwVerify(currentPassword,q.rows[0].password_hash))
+      return errMsg(res,403,'Текущий пароль неверный');
+    const token=cookieToken(req);
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      await client.query('UPDATE users SET password_hash=$1 WHERE id=$2',[pwHash(newPassword),req.user.id]);
+      await client.query('DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2',[req.user.id,digest(token)]);
+      await client.query('COMMIT');
+    }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
+    res.json({ok:true,other_sessions_revoked:true});
+  }catch(e){next(e);}
+});
+app.get('/api/account/export',auth,async(req,res,next)=>{
+  try{
+    const projects=await pool.query('SELECT id,name,connection_status,created_at FROM instagram_accounts WHERE user_id=$1 ORDER BY id',[req.user.id]);
+    const flows=await pool.query(scenarioSelect+' ORDER BY s.id',[req.user.id]);
+    const data={version:1,exported_at:new Date().toISOString(),profile:publicUser(req.user),
+      accounts:projects.rows.map(a=>({...a,id:String(a.id)})),
+      scenarios:flows.rows.map(s=>({...s,id:String(s.id),account_id:String(s.account_id)}))};
+    res.set('Content-Disposition','attachment; filename="vetastart-export.json"');
+    res.type('application/json').send(JSON.stringify(data,null,2));
+  }catch(e){next(e);}
+});
+
 app.get('/healthz',(_req,res)=>res.json({status:'ok',service:'vetastart'}));
 app.get('/dashboard.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'dashboard.js')));
 app.get('/',(_req,res)=>res.sendFile(path.join(__dirname,'index.html')));
