@@ -359,7 +359,7 @@ section[style*="background:#21133b"] a{color:#fff!important}
           <p class="small" id="db-price"></p>
         </div>
         <div><label class="cabinet-field"><span>Сохранённые сценарии</span><select id="db-scenario" class="flow-input"></select></label>
-          <button class="btn secondary" id="db-open-scenario" type="button">Открыть выбранную</button><button class="btn" id="db-save-scenario" type="button">Сохранить текущую воронку</button>
+          <button class="btn secondary" id="db-open-scenario" type="button">Открыть в конструкторе</button><button class="btn" id="db-save-scenario" type="button">Сохранить текущую воронку</button>
           <button class="btn secondary" id="db-update-scenario" type="button">Обновить выбранный сценарий</button>
           <button class="btn secondary" id="db-delete-scenario" type="button">Удалить сценарий</button>
           <p class="small">Сначала настрой воронку выше, затем нажми «Сохранить». По умолчанию это черновик; для включения есть переключатель ниже.</p>
@@ -748,7 +748,7 @@ section[style*="background:#21133b"] a{color:#fff!important}
     });
     $('db-enable-scenario').checked=s.enabled;
     msg('Сценарий загружен в конструктор. Измените и нажмите «Обновить выбранный сценарий».');
-    document.getElementById('how')?.scrollIntoView({behavior:'smooth'});
+    document.getElementById('builder')?.scrollIntoView({behavior:'smooth',block:'start'});
   });
   $('db-save-scenario').addEventListener('click',async()=>{
     if(!currentAccount)return msg('Сначала добавьте аккаунт');
