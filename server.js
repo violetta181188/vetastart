@@ -280,6 +280,7 @@ app.get('/api/account/export',auth,async(req,res,next)=>{
   }catch(e){next(e);}
 });
 
+app.use('/api',(_req,res)=>errMsg(res,404,'Маршрут API не найден'));
 app.get('/healthz',(_req,res)=>res.json({status:'ok',service:'vetastart'}));
 app.get('/dashboard.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'dashboard.js')));
 app.get('/',(_req,res)=>res.sendFile(path.join(__dirname,'index.html')));
