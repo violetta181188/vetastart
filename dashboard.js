@@ -60,7 +60,7 @@
       trigger_source:$('branch-comment').checked && $('branch-dm').checked ? 'both' :
         $('branch-comment').checked ? 'comment' : 'dm',
       follow_gate:$('follow-gate').checked,
-      enabled:$('db-enable-scenario').checked,
+      enabled:$('builder-enable').checked,
       messages:dataFields.slice(0,n).map(value),
       choices:choices.map(c => ({label:c.querySelector('.branch-label').value,
         reply:c.querySelector('.branch-reply').value,
@@ -76,6 +76,7 @@
     $('branch-dm').checked = s.trigger_source !== 'comment';
     $('follow-gate').checked = !!s.follow_gate;
     $('db-enable-scenario').checked = !!s.enabled;
+    $('builder-enable').checked = !!s.enabled;
     set('message-count', String(s.messages.length));
     dataFields.forEach((id,i) => set(id,s.messages[i] || ''));
     document.querySelectorAll('#branch-editor .branch-choice').forEach((node,i) => {
@@ -118,6 +119,7 @@
     $('account-add').disabled = !user;
     $('account-remove').disabled = !user;
     $('scenario-add').disabled = !user;
+    $('builder-save').disabled = !user;
     $('mock-saving-status').textContent = user
       ? 'Сценарии сохраняются на сервере. Отправка в Instagram пока не подключена.'
       : 'Демонстрация. Для сохранения сценариев войди в личный кабинет.';
@@ -157,6 +159,7 @@
     fillSelect($('db-scenario'),scenarios,'Нет сохранённых сценариев',s=>s.name+' · '+s.keyword);
     if (scenarioId && scenarios.some(s=>s.id===scenarioId)) $('db-scenario').value=scenarioId;
     $('db-open-scenario').disabled = !scenarios.length;
+    $('builder-update').disabled = !scenarioId;
     $('db-update-scenario').disabled = !scenarioId;
     $('db-delete-scenario').disabled = !scenarioId;
   }
@@ -257,7 +260,14 @@
   $('db-save-scenario').addEventListener('click',()=>saveScenario(true));
   $('db-update-scenario').addEventListener('click',()=>saveScenario(false));
   $('db-delete-scenario').addEventListener('click',removeScenario);
-  $('db-enable-scenario').addEventListener('change',()=>{pristine=false;});
+  $('db-enable-scenario').addEventListener('change',()=>{
+    $('builder-enable').checked=$('db-enable-scenario').checked;pristine=false;
+  });
+  $('builder-enable').addEventListener('change',()=>{
+    $('db-enable-scenario').checked=$('builder-enable').checked;pristine=false;
+  });
+  $('builder-save').addEventListener('click',()=>saveScenario(true));
+  $('builder-update').addEventListener('click',()=>saveScenario(false));
   document.querySelectorAll('#builder input,#builder textarea,#builder select').forEach(el=>{
     el.addEventListener('input',()=>{pristine=false;});
   });
