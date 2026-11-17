@@ -57,6 +57,25 @@ npm start
 
 Статус сервера: `GET /healthz`. Endpoint `/dashboard.js` отдаёт frontend-контроллер.
 
+## Официальный путь интеграции Instagram (без лишней зависимости от Facebook Page)
+
+Для новых интеграций в первую очередь рассмотреть **Instagram API with Instagram Login** (не legacy Facebook Login).
+Meta подтверждает, что для этого варианта **не требуется Facebook Page**. Подходит для профессиональных аккаунтов Instagram (Business/Creator), при этом разработчику всё ещё нужен Meta App и соответствующие разрешения.
+
+- API-хост: `graph.instagram.com` для Instagram Login.
+- Базовое разрешение: `instagram_business_basic`.
+- Комментарии: `instagram_business_manage_comments`.
+- Сообщения: `instagram_business_manage_messages`.
+- Проверить доступность private replies, правила по окнам ответа и ограничения по webhook для конкретной авторизации/версии API.
+- Официально зарегистрировать redirect URI и настроить OAuth `state` (одноразовый, привязанный к сессии); секрет и user access token хранить только зашифрованными на сервере.
+- Обрабатывать входящие события с подписью, дедупликацией, очередью, лимитами и журналом без публикации персональных данных.
+- Не обещать автоматическую проверку подписки, пока Meta не подтвердит такую возможность для выбранных API permissions.
+
+Официальные источники:
+- https://developers.facebook.com/docs/instagram/platform/instagram-api/changelog/
+- https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/v21.0/
+- https://developers.facebook.com/documentation/business-messaging/instagram-messaging/changelog/
+
 ## Очередность следующей работы
 
 - Проверить полноценный браузерный тест: регистрация, вход, сохранение/изменение/удаление сценария, переключение проекта, смена пароля, выгрузка.
