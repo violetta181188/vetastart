@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node bootstrap.js",
     "migrate": "node migrate.js",
-    "check": "node --check server.js && node --check migrate.js",
+    "check": "node --check server.js && node --check migrate.js && node --check dashboard.js",
     "test": "node --test tests/*.test.js"
   },
   "engines": {
