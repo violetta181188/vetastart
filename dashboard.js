@@ -114,6 +114,8 @@
     $('cabinet-guest').hidden = !!user;
     $('cabinet-user').hidden = !user;
     $('cabinet-projects').hidden = !user;
+    $('cabinet-settings').hidden = !user;
+    if(user){$('cabinet-profile-name').value=user.name;$('cabinet-email').textContent=user.email;}
     $('cabinet-indicator').textContent = user ? 'Аккаунт активен' : 'Вход не выполнен';
     if (user) $('cabinet-greeting').textContent = 'Здравствуйте, ' + user.name + '!';
     $('account-add').disabled = !user;
@@ -291,6 +293,24 @@
       showAuth(null); accounts=[]; scenarios=[]; accountId=null; scenarioId=null;
       renderAccounts(); renderScenarios();
       status('Вы вышли из личного кабинета.');
+    }catch(e){status(e.message);}
+  });
+  $('cabinet-profile-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try {
+      const r=await api('/api/account/profile','PATCH',{name:$('cabinet-profile-name').value});
+      showAuth(r.user);
+      status('Имя профиля обновлено.');
+    }catch(e){status(e.message);}
+  });
+  $('cabinet-password-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const f=e.currentTarget;
+    const data=Object.fromEntries(new FormData(f));
+    try{
+      await api('/api/account/change-password','POST',data);
+      f.reset();
+      status('Пароль изменён. Другие сеансы завершены.');
     }catch(e){status(e.message);}
   });
   showAuth(null); renderAccounts(); renderScenarios();
