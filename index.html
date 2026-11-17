@@ -230,21 +230,21 @@ section[style*="background:#21133b"] a{color:#fff!important}
       <div class="account-header"><strong>Мои Instagram-аккаунты</strong><span class="pill" id="account-count">1 аккаунт</span></div>
       <div class="account-grid"><div><label for="account-select">Выбранный аккаунт</label><select id="account-select" aria-label="Выбрать Instagram-аккаунт"></select></div><span class="pill">до 10 сценариев на аккаунт</span></div>
       <div class="account-actions"><button type="button" id="account-add">+ Добавить аккаунт</button><button type="button" id="account-remove">Удалить выбранный</button></div>
-      <div class="account-note">Первые 3 аккаунта включены в тариф. С 4-го — +299 ₽/мес за каждый. Здесь создаются демонстрационные рабочие пространства, подключение через Meta пока не активно.</div>
+      <div class="account-note">Первые 3 аккаунта включены в тариф. С 4-го — +299 ₽/мес за каждый. Проекты сохраняются в личном кабинете; подключение через Meta пока не активно.</div>
     </div>
     <div class="scenarios-panel" id="scenarios-panel">
       <div class="scenarios-header"><strong>Мои сценарии · выбранный аккаунт</strong><span class="scenario-counter" id="scenario-counter">1 из 10 активных</span></div>
       <div class="scenario-list" id="scenario-list" aria-label="Сценарии и переключатели активности"></div>
-      <button class="scenario-add" id="scenario-add" type="button">+ Новый сценарий</button>
+      <button class="scenario-add" id="scenario-add" type="button">+ Новый сценарий</button><div class="account-actions"><button id="builder-save" type="button">Сохранить как новый сценарий</button><button id="builder-update" type="button">Сохранить изменения</button></div>
       <div class="scenario-name-line"><label for="scenario-name">Название выбранного сценария</label><input class="flow-input" id="scenario-name" maxlength="48" value="Приветствие" /></div>
       <div id="scenario-error" class="scenario-error" aria-live="polite"></div>
-      <div class="scenario-hint">Можно включить до 10 сценариев одновременно. Каждому активному сценарию нужен уникальный ключ (например, СТАРТ, КУРС, ГАЙД). Настройки сохраняются только в этом браузере; для работы на Instagram и нескольких устройствах потребуется сервер и подключение Meta.</div>
+      <div class="scenario-hint">Можно включить до 10 сценариев одновременно на каждый аккаунт. Каждому активному сценарию нужен уникальный ключ (например, СТАРТ, КУРС, ГАЙД). Сохранённые сценарии хранятся на сервере; отправка в Instagram пока не подключена.</div>
     </div>
     <div class="branch-eyebrow">01 · КОГДА ЗАПУСКАТЬ</div>
     <div class="branch-card">
       <label for="branch-trigger">Ключевое слово</label>
       <input id="branch-trigger" class="flow-input" value="СТАРТ" maxlength="40" />
-      <div class="trigger-types"><label><input type="checkbox" id="branch-comment" checked> Комментарий</label><label><input type="checkbox" id="branch-dm" checked> Direct</label></div>
+      <div class="trigger-types"><label><input type="checkbox" id="branch-comment" checked> Комментарий</label><label><input type="checkbox" id="branch-dm" checked> Direct</label></div><label class="gate-row" style="margin-top:10px"><input type="checkbox" id="builder-enable"><span>Включить сценарий в настройках (отправка через Meta пока отключена)</span></label>
     </div>
     <div class="gate-box">
       <label class="gate-row"><input type="checkbox" id="follow-gate"> <span><strong>Проверять подписку перед выдачей материала</strong><br><span class="gate-hint">Необязательная функция. Реальная автоматическая проверка зависит от разрешений Meta и используемого Instagram API.</span></span></label>
@@ -289,7 +289,7 @@ section[style*="background:#21133b"] a{color:#fff!important}
       <div id="demo-events" class="demo-state" aria-live="polite">Событий ещё нет</div>
       <div class="metric-disclaimer">Счётчики работают только в этой открытой странице и не отражают реальных клиентов. Покупки в рабочем сервисе потребуют подтверждения через платёжный сервис, а возвращения — надёжной идентификации клиента и событий сайта.</div>
     </div>
-    <div class="mock-bottom"><span class="mock-indicator"></span> Демо: настройки сценариев сохраняются в этом браузере; реальные сообщения не отправляются</div>
+    <div class="mock-bottom"><span class="mock-indicator"></span> <span id="mock-saving-status">Загрузка кабинета…</span></div>
   </div>
 </section>
 <section class="section" id="features">
@@ -465,158 +465,7 @@ section[style*="background:#21133b"] a{color:#fff!important}
 })();
 </script>
 
-<script>
-/* Local-only scenario collection; no messages are sent to Instagram. */
-(function () {
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const MAX = 10;
-  const KEY = 'vetastart_scenarios_demo_v1';
-  const ACCOUNT_KEY = 'vetastart_accounts_demo_v1';
-  const accountSelect = $('account-select');
-  const fieldIds = ['branch-trigger','branch-comment','branch-dm','follow-gate','gate-message','message-count','branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'];
-  const choiceFields = [...document.querySelectorAll('#branch-editor .branch-choice')];
-  const inputs = fieldIds.map($).concat(choiceFields.flatMap(c => [...c.querySelectorAll('input,textarea')]));
-  const readField = el => el.type === 'checkbox' ? el.checked : el.value;
-  function readState() { return {fields: inputs.map(readField)}; }
-  function writeState(data) {
-    inputs.forEach((el,i) => {
-      const value = data && Array.isArray(data.fields) ? data.fields[i] : undefined;
-      if (value === undefined) return;
-      if (el.type === 'checkbox') el.checked = !!value;
-      else el.value = String(value);
-    });
-    $('gate-details').hidden = !$('follow-gate').checked;
-    $('message-count').dispatchEvent(new Event('change', {bubbles:true}));
-    $('branch-intro').dispatchEvent(new Event('input', {bubbles:true}));
-  }
-  const initial = readState();
-  let scenarios = [{name:'Приветствие',active:true,state:initial}];
-  let selected = 0;
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY));
-    if (raw && Array.isArray(raw.scenarios) && raw.scenarios.length && raw.scenarios.length<=MAX) {
-      scenarios = raw.scenarios.filter(s=>s && s.state && Array.isArray(s.state.fields)).slice(0,MAX).map(s=>({name:String(s.name||'Сценарий').slice(0,48), active:!!s.active, state:s.state}));
-      selected = Math.min(Math.max(0,Number(raw.selected)||0),scenarios.length-1);
-    }
-  } catch(e) {}
-  let accounts = [{name:'Instagram 1',scenarios,selected}];
-  let activeAccount = 0;
-  try {
-    const saved = JSON.parse(localStorage.getItem(ACCOUNT_KEY));
-    if (saved && Array.isArray(saved.accounts) && saved.accounts.length) {
-      const validated = saved.accounts.slice(0,100).map((a,i)=>({
-        name:String(a.name||'Instagram '+(i+1)).slice(0,50),
-        scenarios:Array.isArray(a.scenarios)&&a.scenarios.length ? a.scenarios.slice(0,MAX).filter(v=>v&&v.state&&Array.isArray(v.state.fields)):[],
-        selected:Number(a.selected)||0
-      })).filter(a=>a.scenarios.length);
-      if(validated.length) {accounts=validated;activeAccount=Math.min(Math.max(0,Number(saved.activeAccount)||0),accounts.length-1);scenarios=accounts[activeAccount].scenarios;selected=Math.min(Math.max(0,accounts[activeAccount].selected),scenarios.length-1);}
-    }
-  } catch(e) {}
-  function monthlyPrice(n){return 990+Math.max(0,n-3)*299;}
-  const rub = n => new Intl.NumberFormat('ru-RU').format(n)+' ₽';
-  function updateBill() {
-    const input=$('bill-accounts');
-    const n=Math.min(100,Math.max(1,Math.trunc(Number(input.value)||1)));
-    const extra=Math.max(0,n-3);
-    $('bill-total').textContent=rub(monthlyPrice(n))+'/мес';
-    $('bill-details').textContent=n+' аккаунт(ов) · '+Math.min(3,n)+' включено в базовую стоимость · доплата '+rub(extra*299);
-  }
-  $('bill-accounts').addEventListener('input',updateBill);updateBill();
-  function renderAccounts(){
-    accountSelect.replaceChildren();
-    accounts.forEach((a,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=a.name;accountSelect.append(o);});
-    accountSelect.value=String(activeAccount);
-    $('account-count').textContent=accounts.length+' аккаунт(ов)';
-    $('account-add').disabled=accounts.length>=100;
-    $('account-remove').disabled=accounts.length<=1;
-  }
-  function switchAccount(i){
-    if(i===activeAccount)return;
-    accounts[activeAccount].scenarios=scenarios;accounts[activeAccount].selected=selected;
-    activeAccount=i;
-    scenarios=accounts[i].scenarios;
-    selected=Math.min(Math.max(0,Number(accounts[i].selected)||0),scenarios.length-1);
-    writeState(scenarios[selected].state);
-    $('scenario-name').value=scenarios[selected].name;
-    $('scenario-error').textContent='';
-    save();render();renderAccounts();
-  }
-  accountSelect.addEventListener('change',()=>switchAccount(Number(accountSelect.value)));
-  $('account-add').addEventListener('click',()=>{
-    if(accounts.length>=100)return;
-    const index=accounts.length+1;
-    const state={fields:initial.fields.slice()};state.fields[0]='СТАРТ';
-    accounts.push({name:'Instagram '+index,scenarios:[{name:'Приветствие',active:true,state}],selected:0});
-    switchAccount(accounts.length-1);
-    $('bill-accounts').value=String(accounts.length);updateBill();
-  });
-  $('account-remove').addEventListener('click',()=>{
-    if(accounts.length<=1)return;
-    accounts.splice(activeAccount,1);
-    activeAccount=0;scenarios=accounts[0].scenarios;selected=Math.min(Number(accounts[0].selected)||0,scenarios.length-1);
-    writeState(scenarios[selected].state);$('scenario-name').value=scenarios[selected].name;
-    save();render();renderAccounts();$('bill-accounts').value=String(accounts.length);updateBill();
-  });
-  const normalized = value => String(value || '').trim().toLocaleUpperCase('ru-RU');
-  function word(s) { return normalized(s.state.fields[0]); }
-  function collision(index) {
-    const w = word(scenarios[index]);
-    if (!w) return 'Сначала укажи ключевое слово.';
-    if (scenarios.some((x,i)=>i!==index && x.active && word(x)===w))return 'Это ключевое слово уже использует другой активный сценарий.';
-    return '';
-  }
-  function save() {
-    try {localStorage.setItem(KEY,JSON.stringify({scenarios,selected}));
-      accounts[activeAccount].scenarios=scenarios;accounts[activeAccount].selected=selected;
-      localStorage.setItem(ACCOUNT_KEY,JSON.stringify({accounts,activeAccount}));} catch(e) {}
-  }
-  function sync() {
-    if (!scenarios[selected]) return;
-    scenarios[selected].state=readState();
-    const error=scenarios[selected].active?collision(selected):'';
-    if (error) {scenarios[selected].active=false;$('scenario-error').textContent=error+' Сценарий отключён.';}
-    else $('scenario-error').textContent='';
-    save();render();
-  }
-  function render() {
-    const list=$('scenario-list');list.replaceChildren();
-    scenarios.forEach((sc,i)=>{
-      const wrap=document.createElement('div');wrap.className='scenario-item';
-      const active=document.createElement('input');active.type='checkbox';active.className='scenario-active';active.checked=!!sc.active;active.title='Активен';active.setAttribute('aria-label','Активность: '+sc.name);
-      active.addEventListener('change',()=>{
-        if(active.checked){
-          const message=collision(i);
-          if(message){active.checked=false;$('scenario-error').textContent=message;return;}
-          const amount=scenarios.filter(x=>x.active).length;
-          if(amount>=MAX){active.checked=false;$('scenario-error').textContent='Максимум 10 активных сценариев.';return;}
-        }
-        sc.active=active.checked;$('scenario-error').textContent='';save();render();
-      });
-      const pick=document.createElement('button');pick.type='button';pick.className='scenario-pick'+(i===selected?' selected':'');
-      pick.textContent=(i+1)+'. '+sc.name+' · '+(word(sc)||'без слова');
-      pick.addEventListener('click',()=>{ selected=i;writeState(sc.state);$('scenario-name').value=sc.name;$('scenario-error').textContent='';save();render(); });
-      wrap.append(active,pick);list.append(wrap);
-    });
-    const activeCount=scenarios.filter(s=>s.active).length;
-    $('scenario-counter').textContent=activeCount+' из 10 активных · всего '+scenarios.length;
-    $('scenario-add').disabled=scenarios.length>=MAX;
-  }
-  $('scenario-name').addEventListener('input',()=>{scenarios[selected].name=$('scenario-name').value.slice(0,48)||'Сценарий '+(selected+1);save();render();});
-  $('scenario-add').addEventListener('click',()=>{
-    if(scenarios.length>=MAX)return;
-    const n=scenarios.length+1;
-    const state={fields:initial.fields.slice()};state.fields[0]='СЛОВО'+n;
-    scenarios.push({name:'Сценарий '+n,active:true,state});
-    selected=scenarios.length-1;writeState(state);$('scenario-name').value=scenarios[selected].name;$('scenario-error').textContent='';save();render();
-  });
-  inputs.forEach(el=>{el.addEventListener('input',sync);el.addEventListener('change',sync);});
-  writeState(scenarios[selected].state);$('scenario-name').value=scenarios[selected].name;
-  // Validate stored active keywords as well.
-  const seen=new Set();scenarios.forEach(s=>{const w=word(s);if(s.active && (!w||seen.has(w)))s.active=false;else if(s.active)seen.add(w);});
-  save();render();renderAccounts();
-})();
-</script>
+
 
 
 <script>
@@ -644,131 +493,6 @@ section[style*="background:#21133b"] a{color:#fff!important}
   render();
 })();
 </script>
-<script>
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const msg = text => $('cabinet-status').textContent=text;
-  let currentAccount=null, scenarios=[];
-  async function request(url,method='GET',data){
-    let response;
-    try{response=await fetch(url,{method,credentials:'same-origin',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});}
-    catch{throw new Error('Не удаётся связаться с сервером. Откройте опубликованную тестовую версию.');}
-    let result;
-    try{result=await response.json();}catch{throw new Error('Сервер личного кабинета пока не опубликован.');}
-    if(!response.ok)throw new Error(result.error||'Не удалось выполнить действие');
-    return result;
-  }
-  const val=id=>$(id)?.value||'';
-  function pullBuilder(){
-    const choices=Array.from(document.querySelectorAll('#branch-editor .branch-choice'));
-    const count=Math.max(1,Math.min(5,Number(val('message-count'))||1));
-    const ids=['branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'];
-    const messages=ids.slice(0,count).map(val);
-    return {
-      name:val('scenario-name').trim()||'Новый сценарий',
-      keyword:val('branch-trigger').trim(),
-      trigger_source:$('branch-comment').checked&&$('branch-dm').checked?'both':$('branch-comment').checked?'comment':'dm',
-      enabled:$('db-enable-scenario').checked,
-      follow_gate:$('follow-gate').checked,
-      messages,
-      choices:choices.map(el=>({label:el.querySelector('.branch-label').value,
-        reply:el.querySelector('.branch-reply').value,url:el.querySelector('.branch-url').value}))
-    };
-  }
-  function show(user){
-    $('cabinet-guest').hidden=!!user;$('cabinet-user').hidden=!user;$('cabinet-projects').hidden=!user;
-    $('cabinet-indicator').textContent=user?'Аккаунт активен':'Вход не выполнен';
-    if(user)$('cabinet-greeting').textContent='Здравствуйте, '+user.name+'!';
-  }
-  function listSelect(el,rows,placeholder){
-    el.replaceChildren();
-    if(!rows.length){const o=document.createElement('option');o.value='';o.textContent=placeholder;el.append(o);return;}
-    rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name||r.keyword;el.append(o);});
-  }
-  function applyPrice(b){$('db-price').textContent=`Расчёт: ${b.monthly_rub.toLocaleString('ru-RU')} ₽/месяц за ${b.accounts} проект(ов). Оплата ещё не подключена; создание черновика не является покупкой.`;}
-  async function loadAccounts(preferred){
-    const data=await request('/api/accounts');
-    listSelect($('db-account'),data.accounts,'Нет проектов');
-    const chosen=data.accounts.find(a=>a.id===preferred)||data.accounts[0];
-    currentAccount=chosen?.id||null;
-    if(chosen)$('db-account').value=chosen.id;
-    applyPrice(data.billing);
-    await loadScenarios();
-  }
-  async function loadScenarios(preferred){
-    if(!currentAccount)return;
-    const data=await request('/api/accounts/'+currentAccount+'/scenarios');scenarios=data.scenarios;
-    listSelect($('db-scenario'),scenarios,'Нет сохранённых сценариев');
-    if(preferred&&scenarios.some(s=>s.id===preferred))$('db-scenario').value=preferred;
-    $('db-enable-scenario').checked=false;
-  }
-  async function refresh(){
-    try{const r=await request('/api/auth/me');show(r.user||null);if(r.user)await loadAccounts();}
-    catch{show(null);msg('Кабинет заработает после подключения базы данных и развёртывания тестовой версии.');}
-  }
-  for(const id of ['cabinet-register','cabinet-login'])$(id).addEventListener('submit',async e=>{
-    e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));msg('Проверяем данные…');
-    try{const r=await request('/api/auth/'+(id==='cabinet-register'?'register':'login'),'POST',data);
-      show(r.user);await loadAccounts();e.currentTarget.reset();msg('Вы вошли в личный кабинет.');}
-    catch(err){msg(err.message);}
-  });
-  $('cabinet-logout').addEventListener('click',async()=>{try{await request('/api/auth/logout','POST');show(null);msg('Вы вышли из аккаунта.');}catch(e){msg(e.message);}});
-  $('db-account').addEventListener('change',async()=>{currentAccount=$('db-account').value;try{await loadScenarios();}catch(e){msg(e.message);}});
-  $('db-add-account').addEventListener('click',async()=>{
-    const name=prompt('Название нового проекта Instagram (до 50 символов):');if(!name)return;
-    try{const r=await request('/api/accounts','POST',{name});await loadAccounts(r.account.id);msg('Черновик создан. Instagram пока не подключён.');}
-    catch(e){msg(e.message);}
-  });
-  $('db-delete-account').addEventListener('click',async()=>{
-    if(!currentAccount||!confirm('Удалить выбранный черновик и его сохранённые сценарии?'))return;
-    try{await request('/api/accounts/'+currentAccount,'DELETE');await loadAccounts();msg('Черновик удалён.');}
-    catch(e){msg(e.message);}
-  });
-  $('db-scenario').addEventListener('change',()=>{
-    const selected=scenarios.find(s=>s.id===$('db-scenario').value);
-    $('db-enable-scenario').checked=!!selected?.enabled;
-  });
-  $('db-open-scenario').addEventListener('click',()=>{
-    const s=scenarios.find(x=>x.id===$('db-scenario').value);
-    if(!s)return msg('Сначала выберите сохранённую воронку');
-    const assign=(id,text)=>{const e=$(id);if(e){e.value=text||'';e.dispatchEvent(new Event('input',{bubbles:true}));}};
-    assign('scenario-name',s.name);assign('branch-trigger',s.keyword);
-    $('branch-comment').checked=s.trigger_source!=='dm';$('branch-dm').checked=s.trigger_source!=='comment';
-    $('follow-gate').checked=s.follow_gate;
-    $('follow-gate').dispatchEvent(new Event('change',{bubbles:true}));
-    $('message-count').value=String(s.messages.length);
-    $('message-count').dispatchEvent(new Event('change',{bubbles:true}));
-    ['branch-intro','branch-message-2','branch-message-3','branch-message-4','branch-message-5'].forEach((id,i)=>assign(id,s.messages[i]||''));
-    document.querySelectorAll('#branch-editor .branch-choice').forEach((node,i)=>{
-      const ch=s.choices[i];if(!ch)return;
-      for(const [selector,value] of [['.branch-label',ch.label],['.branch-reply',ch.reply],['.branch-url',ch.url]]){
-        const el=node.querySelector(selector);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));
-      }
-    });
-    $('db-enable-scenario').checked=s.enabled;
-    msg('Сценарий загружен в конструктор. Измените и нажмите «Обновить выбранный сценарий».');
-    document.getElementById('builder')?.scrollIntoView({behavior:'smooth',block:'start'});
-  });
-  $('db-save-scenario').addEventListener('click',async()=>{
-    if(!currentAccount)return msg('Сначала добавьте аккаунт');
-    try{const r=await request('/api/accounts/'+currentAccount+'/scenarios','POST',pullBuilder());
-      await loadScenarios(r.id);msg('Воронка сохранена в базе. Реальная отправка сообщений не включена.');}
-    catch(e){msg(e.message);}
-  });
-  $('db-update-scenario').addEventListener('click',async()=>{
-    const id=$('db-scenario').value;if(!id)return msg('Выберите сохранённую воронку');
-    try{await request('/api/scenarios/'+id,'PATCH',pullBuilder());await loadScenarios(id);msg('Воронка обновлена.');}
-    catch(e){msg(e.message);}
-  });
-  $('db-delete-scenario').addEventListener('click',async()=>{
-    const id=$('db-scenario').value;if(!id)return msg('Выберите сценарий');
-    if(!confirm('Удалить этот сценарий?'))return;
-    try{await request('/api/scenarios/'+id,'DELETE');await loadScenarios();msg('Сценарий удалён.');}
-    catch(e){msg(e.message);}
-  });
-  refresh();
-})();
-</script>
+<script src="/dashboard.js" defer></script>
 </body>
 </html>
