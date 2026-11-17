@@ -10,7 +10,7 @@ test('dashboard script and target are both included',()=>{
   assert.match(page,/<script src="\/dashboard\.js" defer><\/script>/);
   assert.match(page,/\bid="builder"/);
   assert.match(page,/href="#builder"/);
-  assert.match(controller,/getElementById\('builder'\)/);
+  assert.match(controller,/\$\('builder'\)/);
 });
 test('every dashboard element referenced by ID exists exactly once',()=>{
   const ids=[...page.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
