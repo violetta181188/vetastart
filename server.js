@@ -240,6 +240,7 @@ app.get('/api/billing/preview',auth,async(req,res,next)=>{
     res.json(plan(Number(r.rows[0].n)));}catch(e){next(e);}
 });
 app.get('/healthz',(_req,res)=>res.json({status:'ok',service:'vetastart'}));
+app.get('/dashboard.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'dashboard.js')));
 app.get('/',(_req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 app.get('*',(_req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 app.use((error,req,res,_next)=>{
