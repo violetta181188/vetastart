@@ -80,6 +80,8 @@ app.post("/webhooks/instagram", (_req,_res,next)=>{webhookTraffic.received++;nex
 });
 
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+app.get('/privacy',(_req,res)=>res.sendFile(path.join(__dirname,'privacy.html')));
+app.get('/data-deletion',(_req,res)=>res.sendFile(path.join(__dirname,'data-deletion.html')));
 // Only serve the public landing page; keep server source and package files private.
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
