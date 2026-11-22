@@ -7,6 +7,7 @@ const { installCustomers } = require("./customers");
 const { installRobokassa } = require("./robokassa");
 const {installAdminStatus} = require('./admin-status');
 const {installAdminWebhook} = require('./admin-webhook');
+const {installInboxProbe} = require('./admin-inbox-probe');
 const {inspectConfiguration,databaseReady}=require('./deployment-check');
 
 function createApp({ store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail } = {}) {
@@ -20,6 +21,7 @@ app.locals.getStore = getStore;
 const webhookTraffic={since:new Date().toISOString(),received:0,accepted:0,signatureRejected:0,payloadRejected:0,persistenceFailed:0};
 installAdminStatus(app, {getStore, env, fetchImpl, webhookTraffic});
 installAdminWebhook(app, {env, fetchImpl});
+installInboxProbe(app, {getStore, env, fetchImpl, now});
 app.get('/health/live',(_req,res)=>res.set('Cache-Control','no-store').json({status:'running'}));
 app.get('/health/ready',(_req,res)=>{
   res.set('Cache-Control','no-store');

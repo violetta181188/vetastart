@@ -7,6 +7,7 @@ const {installCustomers} = require("./customers");
 const {installRobokassa} = require("./robokassa");
 const {installAdminStatus} = require('../admin-status');
 const {installAdminWebhook} = require('../admin-webhook');
+const {installInboxProbe} = require('../admin-inbox-probe');
 const {installOperator} = require('../operator-rules');
 const {inspectConfiguration} = require('../deployment-check');
 const databaseReady = store => store.db.probe();
@@ -22,6 +23,7 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
   const webhookTraffic={since:new Date().toISOString(),received:0,accepted:0,signatureRejected:0,payloadRejected:0,persistenceFailed:0};
   installAdminStatus(app, {getStore, env, fetchImpl, webhookTraffic});
   installAdminWebhook(app, {env, fetchImpl});
+  installInboxProbe(app, {getStore, env, fetchImpl, now});
   app.use((req, res, next) => {
     const send = res.send;
     res.send = function (...args) {
