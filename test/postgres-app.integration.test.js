@@ -20,6 +20,9 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
  const app=createApp({store,env,sendMail:async mail=>emails.push(mail),fetchImpl:async(endpoint,options)=>{
   assert.ok(endpoint.startsWith('https://graph.facebook.com/'));
   if(endpoint.includes('/debug_token?'))return Response.json({data:{is_valid:true,app_id:'123',type:'SYSTEM_USER',scopes:['instagram_manage_messages']}});
+  if(endpoint.includes('/888/conversations?'))return Response.json({data:[{id:'private-conversation',messages:{data:[{
+    id:'controlled-api-test-message',message:'VETASTART ТЕСТ',created_time:new Date(Date.now()-1000).toISOString(),
+    from:{id:'321',username:'violettaproekti'}}]}}]});
   if(endpoint.includes('/oauth/access_token'))return Response.json({access_token:'fixture-suat-'+activeAccount,expires_in:86400});
   if(endpoint.endsWith('/me/assigned_instagram_accounts'))return Response.json({data:[{id:activeAccount}]});
   if(endpoint.includes('/subscribed_apps'))return Response.json(options.method==='POST'?{success:true}:{data:[{id:'123',subscribed_fields:['messages']}]});
@@ -196,6 +199,34 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.equal((await request(route+'/rules/'+id,{method:'PUT',headers,body})).status,409);
   assert.equal((await request(route+'/rules/'+id,{method:'DELETE',headers})).status,204);
   assert.equal((await request('/operator')).status,200);
+ });
+ await t.test('controlled test preparation sends nothing and confirmed sending targets one draft only',async()=>{
+  const headers={Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN};
+  const {seal}=require('../postgres-app/instagram-auth');
+  await store.db.prepare(`INSERT INTO instagram_connections
+    (account_id,token_cipher,expires_at,token_mode,config_id) VALUES (?,?,0,'unified','12')`).run('888',seal('fixture-test-suat',env));
+  await request('/api/admin/operator/rules',{method:'POST',headers,body:{accountId:'888',keyword:'VETASTART ТЕСТ',reply:'Контрольный ответ',enabled:true}});
+  const path='/api/admin/instagram/accounts/888/test-reply';
+  const before=outbound.length;
+  assert.equal((await request(path+'/prepare',{method:'POST'})).status,401);
+  const response=await request(path+'/prepare',{method:'POST',headers});assert.equal(response.status,200,await response.clone().text());
+  const prepared=await response.json();assert.equal(prepared.to,'@violettaproekti');assert.equal(prepared.reply,'Контрольный ответ');assert.equal(prepared.sent,false);
+  const again=await(await request(path+'/prepare',{method:'POST',headers})).json();assert.equal(again.draftId,prepared.draftId);
+  assert.equal(outbound.length,before);
+  const extra={object:'instagram',entry:[{id:'888',messaging:[{timestamp:Date.now(),sender:{id:'999'},recipient:{id:'888'},message:{mid:'do-not-send',text:'VETASTART ТЕСТ'}}]}]};
+  await store.receive(Buffer.from(JSON.stringify(extra)),extra);
+  await require('../postgres-app/worker').processPending(store,{env});
+  const send=path+'/'+prepared.draftId+'/send';
+  assert.equal((await request(send,{method:'POST',headers,body:{confirm:'wrong'}})).status,400);
+  assert.equal(outbound.length,before);
+  const attempts=await Promise.all([1,2].map(()=>request(send,{method:'POST',headers,body:{confirm:'send-one-test-reply'}})));
+  assert.ok(attempts.every(r=>[200,409].includes(r.status)));
+  assert.equal(outbound.length,before+1);
+  const sent=outbound.at(-1);assert.equal(sent.endpoint,'https://graph.facebook.com/v27.0/888/messages');
+  assert.equal(JSON.parse(sent.options.body).recipient.id,'321');
+  assert.equal((await store.db.prepare("SELECT count(*) AS n FROM drafts WHERE account_id='888' AND status='draft'").get()).n,1);
+  const repeated=await(await request(send,{method:'POST',headers,body:{confirm:'send-one-test-reply'}})).json();
+  assert.equal(repeated.alreadyAttempted,true);assert.equal(outbound.length,before+1);
  });
  await t.test('normal npm start entry chooses PostgreSQL and shuts down cleanly',async()=>{
   const {spawn}=require('node:child_process');const {once}=require('node:events');const {createInterface}=require('node:readline');

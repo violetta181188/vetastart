@@ -17,7 +17,7 @@ async function configuration(env, store) {
     host: loginMode(env) === 'unified' ? 'graph.facebook.com' : 'graph.instagram.com'
   };
 }
-async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Date.now, limit = 100} = {}) {
+async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Date.now, limit = 100, draftId = null} = {}) {
   if (env.VETASTART_SEND_ENABLED === 'true' && !env.INSTAGRAM_ACCESS_TOKEN && (/^\d+$/).test(env.INSTAGRAM_ACCOUNT_ID || '')) {
     await refreshConnections(store, {
       env,
@@ -34,7 +34,8 @@ async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Da
     blocked: 0
   };
   const rows = await store.db.prepare(`SELECT d.*, e.type, e.occurred_at FROM drafts d
-    JOIN events e ON e.id = d.event_id WHERE d.status = 'draft' AND d.account_id = ? LIMIT ?`).all(config.accountId, limit);
+    JOIN events e ON e.id = d.event_id WHERE d.status = 'draft' AND d.account_id = ?
+    ${draftId===null?'':'AND d.id = ?'} LIMIT ?`).all(config.accountId,...(draftId===null?[]:[draftId]),limit);
   for (const draft of rows) {
     const age = now() - draft.occurred_at;
     const hasOwnership = await store.db.prepare("SELECT name FROM sqlite_master WHERE name='customer_accounts'").get();

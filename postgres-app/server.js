@@ -9,6 +9,7 @@ const {installAdminStatus} = require('../admin-status');
 const {installAdminWebhook} = require('../admin-webhook');
 const {installInboxProbe} = require('../admin-inbox-probe');
 const {installOperator} = require('../operator-rules');
+const {installTestReplies} = require('../operator-test-reply');
 const {inspectConfiguration} = require('../deployment-check');
 const databaseReady = store => store.db.probe();
 function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail} = {}) {
@@ -33,6 +34,7 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
     next();
   });
   installOperator(app, {getStore, env});
+  installTestReplies(app, {getStore, env, fetchImpl, now});
   app.get('/health/live', (_req, res) => res.set('Cache-Control', 'no-store').json({
     status: 'running'
   }));
