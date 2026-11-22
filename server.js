@@ -6,6 +6,7 @@ const { installInstagramAuth } = require("./instagram-auth");
 const { installCustomers } = require("./customers");
 const { installRobokassa } = require("./robokassa");
 const {installAdminStatus} = require('./admin-status');
+const {installAdminWebhook} = require('./admin-webhook');
 const {inspectConfiguration,databaseReady}=require('./deployment-check');
 
 function createApp({ store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail } = {}) {
@@ -17,6 +18,7 @@ app.locals.close = () => activeStore?.close();
 const getStore = () => activeStore ||= new AutomationStore(env.VETASTART_DB_PATH || path.join(__dirname, "data", "automation.sqlite"));
 app.locals.getStore = getStore;
 installAdminStatus(app, {getStore, env});
+installAdminWebhook(app, {env, fetchImpl});
 app.get('/health/live',(_req,res)=>res.set('Cache-Control','no-store').json({status:'running'}));
 app.get('/health/ready',(_req,res)=>{
   res.set('Cache-Control','no-store');

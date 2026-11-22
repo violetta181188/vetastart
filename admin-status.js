@@ -1,14 +1,19 @@
 const crypto = require('node:crypto');
 
 // Read-only operational metadata. Tokens and message bodies never leave storage.
-function installAdminStatus(app, {getStore, env}) {
-  app.get('/api/admin/instagram/status', async (req, res) => {
+function adminOnly(env) {
+  return (req, res, next) => {
     res.set('Cache-Control', 'no-store');
     const key = env.VETASTART_ADMIN_TOKEN;
     const supplied = req.get('Authorization') || '';
     const digest = value => crypto.createHash('sha256').update(value).digest();
     if (typeof key !== 'string' || key.length < 32 ||
         !crypto.timingSafeEqual(digest(supplied), digest('Bearer ' + key))) return res.sendStatus(401);
+    next();
+  };
+}
+function installAdminStatus(app, {getStore, env}) {
+  app.get('/api/admin/instagram/status', adminOnly(env), async (_req, res) => {
     try {
       const db = getStore().db;
       const connections = await db.prepare(`SELECT account_id,connection_status,token_mode,expires_at
@@ -23,4 +28,4 @@ function installAdminStatus(app, {getStore, env}) {
     }
   });
 }
-module.exports = {installAdminStatus};
+module.exports = {installAdminStatus, adminOnly};

@@ -6,6 +6,7 @@ const {installInstagramAuth} = require("./instagram-auth");
 const {installCustomers} = require("./customers");
 const {installRobokassa} = require("./robokassa");
 const {installAdminStatus} = require('../admin-status');
+const {installAdminWebhook} = require('../admin-webhook');
 const {inspectConfiguration} = require('../deployment-check');
 const databaseReady = store => store.db.probe();
 function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail} = {}) {
@@ -18,6 +19,7 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
   const getStore = () => activeStore;
   app.locals.getStore = getStore;
   installAdminStatus(app, {getStore, env});
+  installAdminWebhook(app, {env, fetchImpl});
   app.use((req, res, next) => {
     const send = res.send;
     res.send = function (...args) {
