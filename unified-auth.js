@@ -5,6 +5,13 @@ async function connectUnified(env, code, fetchImpl = fetch, now = Date.now) {
       !/^\d+$/.test(env.META_CLIENT_BUSINESS_ID || '')) throw new Error('Meta business configuration required');
   const version = env.META_GRAPH_API_VERSION;
   if (!/^v\d+\.\d+$/.test(version || '')) throw new Error('Graph version required');
+  // Use the same URL normalization as authConfig/authorizationUrl. Meta binds
+  // the one-time code to this URI and rejects an omitted or different URI.
+  const redirect = new URL(env.INSTAGRAM_REDIRECT_URI);
+  if (redirect.protocol !== 'https:' || redirect.username || redirect.password ||
+      redirect.search || redirect.hash || redirect.pathname !== '/auth/instagram/callback') {
+    throw new Error('Valid Meta redirect URI required');
+  }
   const issuedAt = now();
   const failure = (message, stage, status, metaCode, metaSubcode) => {
     const error = new Error(message);
@@ -22,7 +29,8 @@ async function connectUnified(env, code, fetchImpl = fetch, now = Date.now) {
     return body;
   };
   const url = new URL(`https://graph.facebook.com/${version}/oauth/access_token`);
-  url.search = new URLSearchParams({ client_id: env.META_APP_ID, client_secret: env.META_APP_SECRET, code }).toString();
+  url.search = new URLSearchParams({ client_id: env.META_APP_ID, client_secret: env.META_APP_SECRET,
+    code, redirect_uri: redirect.href }).toString();
   const token = await request(url.href, {}, 'exchange');
   if (typeof token.access_token !== 'string' || !token.access_token) throw failure('Token missing', 'exchange');
   let expiresAt;

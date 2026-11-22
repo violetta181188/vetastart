@@ -1,12 +1,14 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { connectUnified } = require('../unified-auth');
+const { authorizationUrl } = require('../instagram-login');
 const { AutomationStore } = require('../automation');
 const { initialize, seal, connectedToken, refreshConnections } = require('../instagram-auth');
 const { sendDrafts } = require('../sender');
 const env = { INSTAGRAM_LOGIN_MODE: 'unified', INSTAGRAM_CONFIG_ID: '12', META_APP_ID: '123',
   META_APP_SECRET: 'test-secret', META_CLIENT_BUSINESS_ID: '456', INSTAGRAM_ACCOUNT_ID: '789',
-  META_GRAPH_API_VERSION: 'v27.0', VETASTART_TOKEN_KEY: Buffer.alloc(32, 2).toString('base64') };
+  META_GRAPH_API_VERSION: 'v27.0', INSTAGRAM_REDIRECT_URI:'https://app.example/auth/instagram/callback',
+  VETASTART_TOKEN_KEY: Buffer.alloc(32, 2).toString('base64') };
 test('Unified exchanges Meta credentials then selects assigned Instagram ID, not /me ID', async () => {
   const calls = [];
   const result = await connectUnified(env, 'one-time-code', async (url, init) => {
@@ -15,6 +17,8 @@ test('Unified exchanges Meta credentials then selects assigned Instagram ID, not
     if (url.includes('/oauth/access_token')) {
       assert.equal(new URL(url).searchParams.get('client_id'), '123');
       assert.equal(new URL(url).searchParams.get('client_secret'), 'test-secret');
+      const login = new URL(authorizationUrl(env, new URL(env.INSTAGRAM_REDIRECT_URI).href, 'state'));
+      assert.equal(new URL(url).searchParams.get('redirect_uri'), login.searchParams.get('redirect_uri'));
       return Response.json({ access_token: 'suat', expires_in: 86400 });
     }
     if(url.endsWith('/subscribed_apps'))return Response.json({success:true});
@@ -25,6 +29,14 @@ test('Unified exchanges Meta credentials then selects assigned Instagram ID, not
   assert.equal(result.businessId, '456'); assert.equal(result.configId, '12');
   assert.equal(result.accountId, '789'); assert.equal(result.expiresAt, 86401000);
   assert.equal(calls.length, 3);
+});
+test('Unified refuses missing or unsafe callback before exchanging the code', async () => {
+  for (const uri of [undefined, 'http://app.example/auth/instagram/callback',
+    'https://app.example/other', 'https://user:password@app.example/auth/instagram/callback',
+    'https://app.example/auth/instagram/callback?unexpected=1']) {
+    await assert.rejects(connectUnified({...env, INSTAGRAM_REDIRECT_URI:uri}, 'code',
+      () => assert.fail('must not exchange a code with an invalid redirect')));
+  }
 });
 test('Unified rejects unverified missing expiry and accepts explicit configuration', async () => {
   const fake = async url => Response.json(url.includes('/oauth/') ? { access_token: 'suat' } : url.endsWith('/subscribed_apps')?{success:true}:{ data: [{ id: '789' }] });
