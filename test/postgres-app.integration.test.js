@@ -21,7 +21,8 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.ok(endpoint.startsWith('https://graph.facebook.com/'));
   if(endpoint.includes('/oauth/access_token'))return Response.json({access_token:'fixture-suat-'+activeAccount,expires_in:86400});
   if(endpoint.endsWith('/me/assigned_instagram_accounts'))return Response.json({data:[{id:activeAccount}]});
-  if(endpoint.endsWith('/subscribed_apps'))return Response.json({success:true});
+  if(endpoint.endsWith('/subscribed_apps'))return Response.json(options.method==='POST'?{success:true}:{data:[{id:'123',subscribed_fields:['messages']}]});
+  if(endpoint.endsWith('?fields=id,username'))return Response.json({id:activeAccount,username:'fixture_account'});
   outbound.push({endpoint,options});return Response.json({message_id:'confirmed-'+outbound.length});
  }});
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
@@ -60,6 +61,9 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.equal(summary.connections[0].account_id,'789');
   assert.equal(summary.connections[0].connection_status,'active');
   assert.doesNotMatch(JSON.stringify(summary),/fixture-suat|token_cipher|password_hash|fixture-secret/);
+  assert.equal((await request('/api/admin/instagram/diagnostics')).status,401);
+  const diagnostics=await(await request('/api/admin/instagram/diagnostics',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).json();
+  assert.deepEqual(diagnostics,{connections:[{accountId:'789',username:'fixture_account',messagesSubscribed:true}]});
   const rule=await request('/api/customer/rules',{cookie:first,method:'POST',body:{accountId:'789',keyword:'гайд',reply:'Ваша ссылка',enabled:true}});
   assert.equal(rule.status,201,await rule.text());
   const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}]}]});
@@ -132,6 +136,49 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
    await Promise.all([sendDrafts(store,options),sendDrafts(other,options)]);
    assert.equal(sent,1);assert.equal((await access(store.db,owner)).usedMessages,100);
   }finally{await other.close();}
+ });
+ await t.test('owner rules stay separate from customers and preview never creates outbound messages',async()=>{
+  const headers={Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN};
+  const route='/api/admin/operator';
+  assert.equal((await request(route+'/rules',{cookie:second})).status,401);
+  const {seal}=require('../postgres-app/instagram-auth');
+  await store.db.prepare(`INSERT INTO instagram_connections
+    (account_id,token_cipher,expires_at,token_mode,config_id) VALUES (?,?,0,'unified','12')`).run('777',seal('fixture-operator-suat',env));
+  const body={accountId:'777',keyword:'ТЕСТ',reply:'Тестовый ответ',enabled:true};
+  assert.equal((await request(route+'/rules',{method:'POST',headers,body:{...body,accountId:'789'}})).status,409);
+  const created=await request(route+'/rules',{method:'POST',headers,body});assert.equal(created.status,201,await created.clone().text());
+  const {id}=await created.json();assert.match(id,/^operator-/);
+  const before=(await store.db.prepare('SELECT count(*) AS n FROM drafts').get()).n;
+  const preview=await request(route+'/preview',{method:'POST',headers,body:{accountId:'777',text:'Вот ТЕСТ!'}});
+  assert.deepEqual(await preview.json(),{matched:true,ruleId:id,reply:'Тестовый ответ',sent:false});
+  assert.equal((await store.db.prepare('SELECT count(*) AS n FROM drafts').get()).n,before);
+  assert.equal((await(await request(route+'/preview',{method:'POST',headers,body:{accountId:'777',text:'протестировать'}})).json()).matched,false);
+  const event={object:'instagram',entry:[{id:'777',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'777'},message:{mid:'owner-message',text:'ТЕСТ'}}]}]};
+  await store.receive(Buffer.from(JSON.stringify(event)),event);
+  const cycle=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'false'},fetchImpl:()=>assert.fail('sending must stay off')});
+  assert.equal(cycle.drafts,1);assert.equal(cycle.sent,0);
+  const changed=await request(route+'/rules/'+id,{method:'PUT',headers,body:{...body,enabled:false}});assert.equal(changed.status,200);
+  const {sendDrafts}=require('../postgres-app/sender');
+  const result=await sendDrafts(store,{env:{...env,INSTAGRAM_ACCOUNT_ID:'777',VETASTART_SEND_ENABLED:'true'},fetchImpl:()=>assert.fail('disabled owner rule must not send')});
+  assert.equal(result.blocked,1);
+  await request(route+'/rules/'+id,{method:'PUT',headers,body});
+  const nextEvent={object:'instagram',entry:[{id:'777',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'777'},message:{mid:'owner-message-2',text:'ТЕСТ'}}]}]};
+  await store.receive(Buffer.from(JSON.stringify(nextEvent)),nextEvent);
+  let ownerSent=0;
+  const sent=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'true'},fetchImpl:async(endpoint,options)=>{
+    assert.equal(endpoint,'https://graph.facebook.com/v27.0/777/messages');
+    assert.equal(JSON.parse(options.body).message.text,'Тестовый ответ');
+    ownerSent++;return Response.json({message_id:'owner-confirmed'});
+  }});
+  assert.equal(sent.sent,1);assert.equal(ownerSent,1);
+  const secondCustomer=(await store.db.prepare('SELECT customer_id FROM customer_sessions WHERE session_hash=?')
+    .get(crypto.createHash('sha256').update(second.split('=')[1]).digest('hex')))?.customer_id;
+  assert.ok(secondCustomer);
+  await store.db.prepare('INSERT INTO customer_accounts VALUES (?,?)').run('777',secondCustomer);
+  assert.deepEqual(await(await request(route+'/rules',{headers})).json(),[]);
+  assert.equal((await request(route+'/rules/'+id,{method:'PUT',headers,body})).status,409);
+  assert.equal((await request(route+'/rules/'+id,{method:'DELETE',headers})).status,204);
+  assert.equal((await request('/operator')).status,200);
  });
  await t.test('normal npm start entry chooses PostgreSQL and shuts down cleanly',async()=>{
   const {spawn}=require('node:child_process');const {once}=require('node:events');const {createInterface}=require('node:readline');

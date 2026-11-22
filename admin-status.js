@@ -12,12 +12,13 @@ function adminOnly(env) {
     next();
   };
 }
-function installAdminStatus(app, {getStore, env}) {
+function installAdminStatus(app, {getStore, env, fetchImpl = fetch}) {
   app.get('/api/admin/instagram/status', adminOnly(env), async (_req, res) => {
     try {
       const db = getStore().db;
-      const connections = await db.prepare(`SELECT account_id,connection_status,token_mode,expires_at
-        FROM instagram_connections ORDER BY account_id`).all();
+      const connections = await db.prepare(`SELECT c.account_id,c.connection_status,c.token_mode,c.expires_at,
+        CASE WHEN EXISTS (SELECT 1 FROM customer_accounts a WHERE a.account_id=c.account_id)
+        THEN 1 ELSE 0 END AS customer_owned FROM instagram_connections c ORDER BY c.account_id`).all();
       const deliveries = await db.prepare('SELECT count(*) AS n FROM deliveries').get();
       const events = await db.prepare('SELECT status,count(*) AS n FROM events GROUP BY status').all();
       return res.json({connections, deliveries: Number(deliveries.n), events,
@@ -26,6 +27,38 @@ function installAdminStatus(app, {getStore, env}) {
     } catch {
       return res.sendStatus(503);
     }
+  });
+  app.get('/api/admin/instagram/diagnostics', adminOnly(env), async (_req,res) => {
+    try {
+      const db=getStore().db;
+      const rows=await db.prepare(`SELECT account_id,token_cipher FROM instagram_connections
+        WHERE connection_status='active' ORDER BY account_id LIMIT 10`).all();
+      const connections=[];
+      for(const row of rows){
+        const item={accountId:row.account_id};
+        const request=async(path,stage)=>{
+          try{
+            const token=require('./instagram-auth').unseal(row.token_cipher,env);
+            const response=await fetchImpl(`https://graph.facebook.com/${env.META_GRAPH_API_VERSION}/${path}`,
+              {headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)});
+            const body=await response.json();
+            if(!response.ok||body?.error){
+              item.errors||=[];item.errors.push({stage,status:response.status,
+                ...(Number.isSafeInteger(body?.error?.code)?{metaCode:body.error.code}:{})});return null;
+            }
+            return body;
+          }catch{item.errors||=[];item.errors.push({stage});return null;}
+        };
+        const profile=await request(row.account_id+'?fields=id,username','profile');
+        if(typeof profile?.username==='string')item.username=profile.username;
+        const subscriptions=await request(row.account_id+'/subscribed_apps','account-subscription');
+        if(Array.isArray(subscriptions?.data)){
+          item.messagesSubscribed=subscriptions.data.some(app=>String(app.id)===env.META_APP_ID&&app.subscribed_fields?.includes('messages'));
+        }
+        connections.push(item);
+      }
+      res.json({connections});
+    }catch{res.sendStatus(503);}
   });
 }
 module.exports = {installAdminStatus, adminOnly};

@@ -39,8 +39,10 @@ async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Da
     const age = now() - draft.occurred_at;
     const hasOwnership = await store.db.prepare("SELECT name FROM sqlite_master WHERE name='customer_accounts'").get();
     const owner = hasOwnership && await store.db.prepare('SELECT customer_id FROM customer_accounts WHERE account_id=?').get(draft.account_id);
-    const activeRule = !owner || await store.db.prepare(`SELECT 1 FROM customer_rules WHERE id=? AND customer_id=?
-      AND account_id=? AND enabled=1`).get(draft.scenario_id, owner.customer_id, draft.account_id);
+    const activeRule = owner ? await store.db.prepare(`SELECT 1 FROM customer_rules WHERE id=? AND customer_id=?
+      AND account_id=? AND enabled=1`).get(draft.scenario_id, owner.customer_id, draft.account_id)
+      : draft.scenario_id.startsWith('operator-') ? await store.db.prepare(`SELECT 1 FROM operator_rules
+        WHERE id=? AND account_id=? AND enabled=1`).get(draft.scenario_id,draft.account_id) : true;
     const eligible = draft.type === 'message' && Number.isSafeInteger(draft.occurred_at) && age >= 0 && age < 24 * 60 * 60 * 1000 && (/^\d+$/).test(draft.recipient_id) && !!activeRule;
     const claimed = eligible && owner ? {
       changes: Number(await reserveSend(store.db, owner.customer_id, draft.id, now()))

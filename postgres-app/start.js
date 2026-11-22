@@ -8,6 +8,7 @@ const {createApp} = require('./server');
 const {runCycle, createRunner} = require('./automation-runner');
 const {inspectConfiguration}=require('../deployment-check');
 const {importLegacyUsers}=require('./legacy');
+const {initializeOperatorRules}=require('../operator-rules');
 async function prepareStore(env) {
   const db = new PostgresDatabase({
     connectionString: env.DATABASE_URL,
@@ -25,6 +26,7 @@ async function prepareStore(env) {
       await initialize(db);
       await initializeSubscriptions(db);
       await initializeBilling(db);
+      await initializeOperatorRules(db);
       await importLegacyUsers(db);
     });
     return store;

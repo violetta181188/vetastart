@@ -26,9 +26,11 @@ async function runCycle(store, {env = process.env, fetchImpl = fetch, now = Date
     account_id TEXT PRIMARY KEY, last_run_at INTEGER NOT NULL, status TEXT NOT NULL
   )`);
   const accounts = await store.db.prepare(`SELECT c.account_id,c.token_mode,c.config_id FROM instagram_connections c
-    JOIN customer_accounts a ON a.account_id=c.account_id
+    LEFT JOIN customer_accounts a ON a.account_id=c.account_id
     LEFT JOIN automation_account_runs r ON r.account_id=c.account_id
-    WHERE c.connection_status='active' ORDER BY COALESCE(r.last_run_at,0),c.account_id LIMIT 25`).all();
+    WHERE c.connection_status='active' AND (a.customer_id IS NOT NULL OR
+      EXISTS (SELECT 1 FROM operator_rules o WHERE o.account_id=c.account_id AND o.enabled=1))
+    ORDER BY COALESCE(r.last_run_at,0),c.account_id LIMIT 25`).all();
   for (const account of accounts) {
     await store.db.prepare(`INSERT INTO automation_account_runs VALUES (?,?,'running')
       ON CONFLICT(account_id) DO UPDATE SET last_run_at=excluded.last_run_at,status='running'`).run(account.account_id, now());
