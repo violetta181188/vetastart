@@ -2,7 +2,6 @@ const {safeRouter} = require('./safe-router');
 const express = require("express");
 const path = require("path");
 const crypto = require("crypto");
-const {AutomationStore} = require("./automation");
 const {installInstagramAuth} = require("./instagram-auth");
 const {installCustomers} = require("./customers");
 const {installRobokassa} = require("./robokassa");
@@ -12,9 +11,10 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
   if (!store) throw new Error("Initialized PostgreSQL store required");
   const app = safeRouter(express());
   app.disable("x-powered-by");
-  let activeStore = store;
+  app.use((_req,res,next)=>{res.set({'X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});next();});
+  const activeStore = store;
   app.locals.close = async () => await activeStore?.close();
-  const getStore = () => activeStore ||= new AutomationStore(env.VETASTART_DB_PATH || path.join(__dirname, "data", "automation.sqlite"));
+  const getStore = () => activeStore;
   app.locals.getStore = getStore;
   app.use((req, res, next) => {
     const send = res.send;
@@ -97,7 +97,6 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
       return res.sendStatus(400);
     }
     try {
-      activeStore ||= new AutomationStore(env.VETASTART_DB_PATH || path.join(__dirname, "data", "automation.sqlite"));
       await activeStore.receive(req.body, event);
     } catch {
       console.error("Instagram webhook persistence failed");

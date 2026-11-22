@@ -10,6 +10,7 @@ const {inspectConfiguration,databaseReady}=require('./deployment-check');
 function createApp({ store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail } = {}) {
 const app = express();
 app.disable("x-powered-by");
+app.use((_req,res,next)=>{res.set({'X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});next();});
 let activeStore = store;
 app.locals.close = () => activeStore?.close();
 const getStore = () => activeStore ||= new AutomationStore(env.VETASTART_DB_PATH || path.join(__dirname, "data", "automation.sqlite"));

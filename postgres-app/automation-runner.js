@@ -93,32 +93,6 @@ function createRunner({cycle, intervalMs = 10000, report = () => {}, onError = (
     }
   };
 }
-async function main() {
-  if (process.env.VETASTART_AUTOMATION_ENABLED !== 'true') throw new Error('Automation is disabled');
-  const intervalMs = Number(process.env.VETASTART_AUTOMATION_INTERVAL_MS || 10000);
-  if (!Number.isInteger(intervalMs) || intervalMs < 1000) throw new Error('Invalid interval');
-  const store = new AutomationStore(process.env.VETASTART_DB_PATH || path.join(__dirname, 'data', 'automation.sqlite'));
-  const runner = createRunner({
-    intervalMs,
-    cycle: () => runCycle(store),
-    report: result => console.log(JSON.stringify(result)),
-    onError: () => console.error('Automation cycle failed: check configuration and database')
-  });
-  let closing = false;
-  const shutdown = async () => {
-    if (closing) return;
-    closing = true;
-    await runner.stop();
-    await store.close();
-  };
-  process.once('SIGTERM', shutdown);
-  process.once('SIGINT', shutdown);
-  runner.start();
-}
-if (require.main === module) main().catch(() => {
-  console.error('Automation runner could not start');
-  process.exitCode = 1;
-});
 module.exports = {
   runCycle,
   createRunner

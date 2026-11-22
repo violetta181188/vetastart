@@ -22,22 +22,6 @@ async function processPending(store, {env = process.env, maxBatches = 10} = {}) 
   }
   return total;
 }
-async function main() {
-  const store = new AutomationStore(process.env.VETASTART_DB_PATH || path.join(__dirname, 'data', 'automation.sqlite'));
-  try {
-    console.log(JSON.stringify(await processPending(store)));
-  } finally {
-    await store.close();
-  }
-}
 module.exports = {
   processPending
 };
-if (require.main === module) {
-  try {
-    main();
-  } catch {
-    console.error('Scenario processing failed: check configuration and database access');
-    process.exitCode = 1;
-  }
-}

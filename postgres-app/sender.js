@@ -98,19 +98,6 @@ async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Da
   }
   return counts;
 }
-async function main() {
-  if (process.env.VETASTART_SEND_ENABLED !== 'true') throw new Error('Outbound sending is disabled');
-  const store = new AutomationStore(process.env.VETASTART_DB_PATH || path.join(__dirname, 'data', 'automation.sqlite'));
-  try {
-    console.log(JSON.stringify(await sendDrafts(store)));
-  } finally {
-    await store.close();
-  }
-}
-if (require.main === module) main().catch(() => {
-  console.error('Instagram sender stopped: check configuration, database and delivery statuses');
-  process.exitCode = 1;
-});
 module.exports = {
   sendDrafts,
   configuration

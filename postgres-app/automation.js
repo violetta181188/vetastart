@@ -1,6 +1,3 @@
-const {DatabaseSync} = require('node:sqlite');
-const {mkdirSync, chmodSync} = require('node:fs');
-const path = require('node:path');
 const crypto = require('node:crypto');
 function validateRules(rules) {
   if (!Array.isArray(rules)) throw new Error('Scenarios must be an array');
