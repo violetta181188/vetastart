@@ -19,6 +19,7 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
  store.db.query=async(sql,args)=>{try{return await query(sql,args);}catch(error){console.error('PostgreSQL test query failed:',error.code,error.message,sql);throw error;}};
  const app=createApp({store,env,sendMail:async mail=>emails.push(mail),fetchImpl:async(endpoint,options)=>{
   assert.ok(endpoint.startsWith('https://graph.facebook.com/'));
+  if(endpoint.includes('/debug_token?'))return Response.json({data:{is_valid:true,app_id:'123',type:'SYSTEM_USER',scopes:['instagram_manage_messages']}});
   if(endpoint.includes('/oauth/access_token'))return Response.json({access_token:'fixture-suat-'+activeAccount,expires_in:86400});
   if(endpoint.endsWith('/me/assigned_instagram_accounts'))return Response.json({data:[{id:activeAccount}]});
   if(endpoint.includes('/subscribed_apps'))return Response.json(options.method==='POST'?{success:true}:{data:[{id:'123',subscribed_fields:['messages']}]});
@@ -63,7 +64,9 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.doesNotMatch(JSON.stringify(summary),/fixture-suat|token_cipher|password_hash|fixture-secret/);
   assert.equal((await request('/api/admin/instagram/diagnostics')).status,401);
   const diagnostics=await(await request('/api/admin/instagram/diagnostics',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).json();
-  assert.deepEqual(diagnostics,{connections:[{accountId:'789',username:'fixture_account',subscriptions:[{appId:'123',fields:['messages']}],messagesSubscribed:true}]});
+  assert.deepEqual(diagnostics,{connections:[{accountId:'789',username:'fixture_account',profileId:'789',subscriptionCount:1,
+    subscriptions:[{appId:'123',fields:['messages']}],messagesSubscribed:true,
+    token:{valid:true,appMatches:true,type:'SYSTEM_USER',scopes:['instagram_manage_messages']}}]});
   assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',cookie:first})).status,401);
   assert.equal((await request('/api/admin/instagram/accounts/unknown/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,400);
   assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,200);
@@ -75,6 +78,10 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
     'x-hub-signature-256':'sha256='+crypto.createHmac('sha256',env.META_APP_SECRET).update(body).digest('hex')}});
    assert.equal(webhook.status,200,await webhook.text());
   }
+  assert.equal((await request('/webhooks/instagram',{method:'POST',raw:body,headers:{'Content-Type':'application/json','x-hub-signature-256':'sha256=invalid'}})).status,403);
+  const traffic=(await(await request('/api/admin/instagram/status',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).json()).webhookTraffic;
+  assert.equal(traffic.received,3);assert.equal(traffic.accepted,2);assert.equal(traffic.signatureRejected,1);
+  assert.doesNotMatch(JSON.stringify(traffic),/fixture|ГАЙД|m1/);
   const result=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'true'},fetchImpl:async(endpoint,options)=>{
    outbound.push({endpoint,options});return Response.json({message_id:'sent-confirmed'});
   }});
@@ -151,6 +158,13 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.equal((await request(route+'/rules',{method:'POST',headers,body:{...body,accountId:'789'}})).status,409);
   const created=await request(route+'/rules',{method:'POST',headers,body});assert.equal(created.status,201,await created.clone().text());
   const {id}=await created.json();assert.match(id,/^operator-/);
+  const originalTransaction=store.db.transaction.bind(store.db);
+  try{
+    store.db.transaction=action=>originalTransaction(async()=>{await action();throw new Error('fixture commit failure');});
+    const rolledBack=await request(route+'/rules/'+id,{method:'PUT',headers,body:{...body,reply:'Must not commit'}});
+    assert.equal(rolledBack.status,503);
+    assert.equal((await store.db.prepare('SELECT reply FROM operator_rules WHERE id=?').get(id)).reply,body.reply);
+  }finally{store.db.transaction=originalTransaction;}
   const before=(await store.db.prepare('SELECT count(*) AS n FROM drafts').get()).n;
   const preview=await request(route+'/preview',{method:'POST',headers,body:{accountId:'777',text:'Вот ТЕСТ!'}});
   assert.deepEqual(await preview.json(),{matched:true,ruleId:id,reply:'Тестовый ответ',sent:false});

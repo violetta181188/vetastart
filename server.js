@@ -17,7 +17,8 @@ let activeStore = store;
 app.locals.close = () => activeStore?.close();
 const getStore = () => activeStore ||= new AutomationStore(env.VETASTART_DB_PATH || path.join(__dirname, "data", "automation.sqlite"));
 app.locals.getStore = getStore;
-installAdminStatus(app, {getStore, env, fetchImpl});
+const webhookTraffic={since:new Date().toISOString(),received:0,accepted:0,signatureRejected:0,payloadRejected:0,persistenceFailed:0};
+installAdminStatus(app, {getStore, env, fetchImpl, webhookTraffic});
 installAdminWebhook(app, {env, fetchImpl});
 app.get('/health/live',(_req,res)=>res.set('Cache-Control','no-store').json({status:'running'}));
 app.get('/health/ready',(_req,res)=>{
@@ -50,20 +51,21 @@ app.get("/webhooks/instagram", (req, res) => {
   return res.status(200).type("text/plain").send(challenge);
 });
 
-app.post("/webhooks/instagram", express.raw({ type: "application/json", limit: "1mb" }), (req, res) => {
+app.post("/webhooks/instagram", (_req,_res,next)=>{webhookTraffic.received++;next();}, express.raw({ type: "application/json", limit: "1mb" }), (req, res) => {
   const secret = env.META_APP_SECRET;
   if (!secret) return res.sendStatus(503);
-  if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);
+  if (!Buffer.isBuffer(req.body)) {webhookTraffic.payloadRejected++;return res.sendStatus(415);}
   const signature = req.get("x-hub-signature-256") || "";
   const expected = "sha256=" + crypto.createHmac("sha256", secret).update(req.body).digest("hex");
-  if (!equalSecret(signature, expected)) return res.sendStatus(403);
+  if (!equalSecret(signature, expected)) {webhookTraffic.signatureRejected++;return res.sendStatus(403);}
   let event;
   try {
     event = JSON.parse(req.body.toString("utf8"));
   } catch {
-    return res.sendStatus(400);
+    webhookTraffic.payloadRejected++;return res.sendStatus(400);
   }
   if (!event || event.object !== "instagram" || !Array.isArray(event.entry)) {
+      webhookTraffic.payloadRejected++;
     return res.sendStatus(400);
   }
   try {
@@ -71,10 +73,10 @@ app.post("/webhooks/instagram", express.raw({ type: "application/json", limit: "
     // Acknowledge only after durable commit. No payloads or identifiers in logs.
     activeStore.receive(req.body, event);
   } catch {
-    console.error("Instagram webhook persistence failed");
+    webhookTraffic.persistenceFailed++;console.error("Instagram webhook persistence failed");
     return res.sendStatus(503);
   }
-  return res.status(200).send("EVENT_RECEIVED");
+  webhookTraffic.accepted++;return res.status(200).send("EVENT_RECEIVED");
 });
 
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
