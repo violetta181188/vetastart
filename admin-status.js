@@ -37,7 +37,10 @@ function installAdminStatus(app, {getStore, env, fetchImpl = fetch, webhookTraff
         THEN 1 ELSE 0 END AS customer_owned FROM instagram_connections c ORDER BY c.account_id`).all();
       const deliveries = await db.prepare('SELECT count(*) AS n FROM deliveries').get();
       const events = await db.prepare('SELECT status,count(*) AS n FROM events GROUP BY status').all();
-      return res.json({connections, deliveries: Number(deliveries.n), events,
+      const pollTable=await db.prepare("SELECT name FROM sqlite_master WHERE name='instagram_poll_state'").get();
+      const apiPolling=pollTable?await db.prepare(`SELECT account_id,started_at,next_poll_at,last_success_at,last_status,last_ingested,partial
+        FROM instagram_poll_state ORDER BY account_id`).all():[];
+      return res.json({connections, deliveries: Number(deliveries.n), events,apiPolling,
         ...(webhookTraffic?{webhookTraffic:{...webhookTraffic}}:{}),
         automationEnabled: env.VETASTART_AUTOMATION_ENABLED === 'true',
         sendingEnabled: env.VETASTART_SEND_ENABLED === 'true'});

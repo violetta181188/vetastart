@@ -29,7 +29,7 @@ function inspectConfiguration(env,{profile='runtime',nodeVersion=process.version
   add('SMTP_PORT',['465','587'].includes(env.SMTP_PORT||'465'));
   add('MAIL_FROM',/^\S+@[^\s@]+\.[^\s@]+$/.test(env.MAIL_FROM||''));
  }
- if(profile==='pilot'||env.VETASTART_SEND_ENABLED==='true'){
+ if(profile==='pilot'||env.VETASTART_SEND_ENABLED==='true'||env.VETASTART_API_POLL_ENABLED==='true'){
   add('INSTAGRAM_LOGIN_MODE',env.INSTAGRAM_LOGIN_MODE==='unified');
   for(const name of ['META_APP_ID','INSTAGRAM_CONFIG_ID','META_CLIENT_BUSINESS_ID'])add(name,numeric(name));
   for(const name of ['META_APP_SECRET','INSTAGRAM_VERIFY_TOKEN'])add(name,present(name));
@@ -41,6 +41,14 @@ function inspectConfiguration(env,{profile='runtime',nodeVersion=process.version
  if(env.VETASTART_AUTOMATION_ENABLED==='true'){
   const interval=Number(env.VETASTART_AUTOMATION_INTERVAL_MS||10000);
   add('VETASTART_AUTOMATION_INTERVAL_MS',Number.isInteger(interval)&&interval>=1000);
+ }
+ if(env.VETASTART_API_POLL_ENABLED==='true'){
+  add('API_POLL_POSTGRESQL',present('DATABASE_URL'));
+  add('VETASTART_API_POLL_ACCOUNT_ID',numeric('VETASTART_API_POLL_ACCOUNT_ID'));
+  const interval=Number(env.VETASTART_API_POLL_INTERVAL_MS||60000);
+  add('VETASTART_API_POLL_INTERVAL_MS',Number.isSafeInteger(interval)&&interval>=60000&&interval<=3600000);
+  add('API_POLL_UNIFIED',env.INSTAGRAM_LOGIN_MODE==='unified');
+  add('API_POLL_RUNNER_ENABLED',env.VETASTART_AUTOMATION_ENABLED==='true');
  }
  if(env.ROBOKASSA_ENABLED==='true'){
   add('ROBOKASSA_MERCHANT_LOGIN',present('ROBOKASSA_MERCHANT_LOGIN'));

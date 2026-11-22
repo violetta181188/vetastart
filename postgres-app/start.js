@@ -10,6 +10,7 @@ const {inspectConfiguration}=require('../deployment-check');
 const {importLegacyUsers}=require('./legacy');
 const {initializeOperatorRules}=require('../operator-rules');
 const {initializeTestReplies}=require('../operator-test-reply');
+const {initializePolling}=require('./api-poller');
 async function prepareStore(env) {
   const db = new PostgresDatabase({
     connectionString: env.DATABASE_URL,
@@ -29,6 +30,7 @@ async function prepareStore(env) {
       await initializeBilling(db);
       await initializeOperatorRules(db);
       await initializeTestReplies(db);
+      await initializePolling(db);
       await importLegacyUsers(db);
     });
     return store;

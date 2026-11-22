@@ -30,6 +30,19 @@ test('readiness probes transactional database writes without retaining probe dat
   store.db.exec('ROLLBACK');
  }finally{store.close();}
 });
+test('API polling readiness requires PostgreSQL, an explicit owner account and a minute interval',()=>{
+ const env={NODE_ENV:'production',DATABASE_URL:'postgresql://fixture@localhost/vetastart_test',
+  VETASTART_PUBLIC_ORIGIN:'https://app.example',INSTAGRAM_LOGIN_MODE:'unified',META_APP_ID:'123',
+  INSTAGRAM_CONFIG_ID:'12',META_CLIENT_BUSINESS_ID:'456',META_APP_SECRET:'fixture',INSTAGRAM_VERIFY_TOKEN:'fixture',
+  META_GRAPH_API_VERSION:'v27.0',VETASTART_ADMIN_TOKEN:'fixture-admin-key-more-than-thirty-two-characters',
+  VETASTART_TOKEN_KEY:Buffer.alloc(32,1).toString('base64'),INSTAGRAM_REDIRECT_URI:'https://app.example/auth/instagram/callback',
+  VETASTART_AUTOMATION_ENABLED:'true',VETASTART_API_POLL_ENABLED:'true',VETASTART_API_POLL_ACCOUNT_ID:'789'};
+ assert.equal(inspectConfiguration(env).ok,true);
+ for(const change of [{VETASTART_API_POLL_INTERVAL_MS:'1000'},{VETASTART_API_POLL_ACCOUNT_ID:''},
+  {VETASTART_AUTOMATION_ENABLED:'false'},{VETASTART_TOKEN_KEY:''},{DATABASE_URL:''}]){
+  assert.equal(inspectConfiguration({...env,...change}).ok,false);
+ }
+});
 test('backup and restore preserve durable queue with private permissions and refuse overwrite',t=>{
  const dir=mkdtempSync(path.join(tmpdir(),'vetastart-backup-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
  const source=path.join(dir,'original.sqlite'),backup=path.join(dir,'backup.sqlite'),restored=path.join(dir,'restored.sqlite');

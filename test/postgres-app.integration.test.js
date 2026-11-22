@@ -228,6 +228,41 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const repeated=await(await request(send,{method:'POST',headers,body:{confirm:'send-one-test-reply'}})).json();
   assert.equal(repeated.alreadyAttempted,true);assert.equal(outbound.length,before+1);
  });
+ await t.test('API polling starts at activation, deduplicates webhooks, respects leases and stops on revocation',async()=>{
+  const {pollOwnerInbox}=require('../postgres-app/api-poller');
+  const time=Math.floor(Date.now()/1000)*1000;
+  const pollEnv={...env,VETASTART_API_POLL_ENABLED:'true',VETASTART_API_POLL_ACCOUNT_ID:'888'};
+  let calls=0;
+  const old={id:'historical',message:'VETASTART ТЕСТ',from:{id:'321'},created_time:new Date(time-60000).toISOString()};
+  const fresh={...old,id:'poll-fresh',created_time:new Date(time+10000).toISOString()};
+  const fetchPoll=async(endpoint,options)=>{
+    calls++;assert.equal(options.method,undefined);assert.match(endpoint,/\/888\/conversations\?/);
+    return Response.json({data:[{messages:{data:[old,fresh,fresh,{...fresh,id:'echo',from:{id:'888'}}]}}]});
+  };
+  assert.equal((await pollOwnerInbox(store,{env:{...pollEnv,VETASTART_API_POLL_ACCOUNT_ID:'789'},fetchImpl:()=>assert.fail('customer account excluded')})).apiPolls,0);
+  const firstPoll=await pollOwnerInbox(store,{env:pollEnv,fetchImpl:fetchPoll,now:()=>time});
+  assert.equal(firstPoll.apiEvents,0);assert.equal(calls,1);
+  const other=await prepareStore(env);
+  try{
+    const results=await Promise.all([store,other].map(s=>pollOwnerInbox(s,{env:pollEnv,fetchImpl:fetchPoll,now:()=>time+61000})));
+    assert.equal(results.reduce((sum,r)=>sum+r.apiPolls,0),1);assert.equal(calls,2);
+    assert.equal(results.reduce((sum,r)=>sum+r.apiEvents,0),1);
+    await require('../postgres-app/worker').processPending(store,{env});
+    const event=await store.db.prepare("SELECT id FROM events WHERE account_id='888' AND source_id='poll-fresh'").get();
+    assert.ok(event);assert.equal((await store.db.prepare('SELECT count(*) AS n FROM drafts WHERE event_id=?').get(event.id)).n,1);
+    const webhook={object:'instagram',entry:[{id:'888',messaging:[{timestamp:time+10000,sender:{id:'321'},recipient:{id:'888'},message:{mid:'poll-fresh',text:'VETASTART ТЕСТ'}}]}]};
+    await store.receive(Buffer.from(JSON.stringify(webhook)),webhook);
+    const repeat=await pollOwnerInbox(store,{env:pollEnv,fetchImpl:fetchPoll,now:()=>time+122000});assert.equal(repeat.apiEvents,0);
+    assert.equal((await other.db.prepare("SELECT last_success_at FROM instagram_poll_state WHERE account_id='888'").get()).last_success_at,time+122000);
+    const limited=await pollOwnerInbox(store,{env:pollEnv,fetchImpl:async()=>Response.json({error:{code:4}},{status:429}),now:()=>time+183000});
+    assert.equal(limited.apiPollErrors,1);
+    assert.equal((await pollOwnerInbox(store,{env:pollEnv,fetchImpl:()=>assert.fail('rate limit cooldown'),now:()=>time+184000})).apiPolls,0);
+    const revoked=await pollOwnerInbox(store,{env:pollEnv,fetchImpl:async()=>Response.json({error:{code:190}},{status:400}),now:()=>time+500000});
+    assert.equal(revoked.apiPollErrors,1);
+    assert.equal((await store.db.prepare("SELECT connection_status FROM instagram_connections WHERE account_id='888'").get()).connection_status,'reauthorization_required');
+    assert.equal((await pollOwnerInbox(store,{env:pollEnv,fetchImpl:()=>assert.fail('revoked account must stop'),now:()=>time+600000})).apiPolls,0);
+  }finally{await other.close();}
+ });
  await t.test('normal npm start entry chooses PostgreSQL and shuts down cleanly',async()=>{
   const {spawn}=require('node:child_process');const {once}=require('node:events');const {createInterface}=require('node:readline');
   const child=spawn(process.execPath,[require('node:path').join(__dirname,'..','server.js')],{env:{...process.env,...env,

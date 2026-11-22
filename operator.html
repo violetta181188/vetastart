@@ -12,6 +12,7 @@ body{margin:auto;max-width:880px;padding:24px;background:#100d1c;color:#f8f7ff;f
 <main id="panel" hidden><button id="refresh">Обновить состояние</button><button id="logout">Выйти</button>
 <section><h2>Подключение Instagram</h2><p id="connection"></p><p id="incoming" class="counter"></p><p id="sending"></p>
 <button id="connect">Подключить Instagram</button><button id="webhook">Проверить webhook Meta</button>
+<p id="polling"></p>
 <p><small>Проверка получения: отправьте «VETASTART ТЕСТ» в Direct подключённого аккаунта с другого аккаунта Instagram, затем обновите состояние.</small></p></section>
 <section><h2>Сценарии владельца</h2><p>Эти сценарии действуют для ваших аккаунтов, подключённых ключом администратора. Аккаунтами клиентов управляют сами клиенты в своём кабинете.</p>
 <form id="rule"><input name="id" type="hidden"><label>Аккаунт Instagram<select name="accountId" required></select></label>
@@ -43,6 +44,7 @@ async function load(){
  const eventCount=status.events.reduce((total,event)=>total+Number(event.n),0);
  el('incoming').textContent='Получено уведомлений Meta: '+status.deliveries+'. Входящих событий: '+eventCount+'.';
  el('sending').textContent=status.automationEnabled&&status.sendingEnabled?'Автоматические ответы на сервере включены.':'Автоматические ответы на сервере выключены.';
+ el('polling').textContent=(status.apiPolling||[]).map(p=>'Проверка сообщений через API · '+p.account_id+' · '+({ok:'Работает',partial:'Доступен только ограниченный фрагмент переписок',running:'Проверяется',paused:'Приостановлена',rate_limited:'Ожидает снятия лимита Meta',meta_rejected:'Meta отклонила запрос',poll_failed:'Нужна проверка соединения'}[p.last_status]||'Подготовка')+(p.last_success_at?' · последняя проверка: '+new Date(p.last_success_at).toLocaleString('ru-RU'):'')).join('\n');
  for(const form of [el('rule'),el('preview')]){
   const select=form.elements.accountId,selected=select.value;select.replaceChildren();
   for(const account of status.connections.filter(c=>c.connection_status==='active'&&!c.customer_owned)){

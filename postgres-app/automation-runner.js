@@ -4,6 +4,7 @@ const {processPending} = require('./worker');
 const {sendDrafts} = require('./sender');
 const {initialize} = require('./instagram-auth');
 const {initializeCustomers} = require('./customers');
+const {pollOwnerInbox}=require('./api-poller');
 async function runCycle(store, {env = process.env, fetchImpl = fetch, now = Date.now} = {}) {
   const result = {
     processed: 0,
@@ -16,6 +17,7 @@ async function runCycle(store, {env = process.env, fetchImpl = fetch, now = Date
     blocked: 0
   };
   if (env.VETASTART_AUTOMATION_ENABLED !== 'true') return result;
+  Object.assign(result,await pollOwnerInbox(store,{env,fetchImpl,now}));
   Object.assign(result, await processPending(store, {
     env
   }));
