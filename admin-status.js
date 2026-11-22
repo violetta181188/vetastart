@@ -1,5 +1,21 @@
 const crypto = require('node:crypto');
 
+function summarizeSubscriptions(data, appId) {
+  const subscriptions=data.map(entry=>{
+    const id=entry?.id ?? entry?.app_id ?? entry?.application?.id;
+    const rawFields=entry?.subscribed_fields ?? entry?.fields;
+    const fields=Array.isArray(rawFields)?rawFields.map(field=>typeof field==='string'?field:field?.name)
+      .filter(field=>typeof field==='string'&&/^[a-z_]{1,80}$/.test(field)):null;
+    if((typeof id==='string'||typeof id==='number')&&String(id).length<=128)return {appId:String(id),fields};
+    return {fields,keys:entry&&typeof entry==='object'?Object.keys(entry).filter(key=>/^[a-z_]{1,80}$/.test(key)):[],
+      ...(typeof entry==='string'&&/^[a-z_]{1,80}$/.test(entry)?{field:entry}:{})};
+  });
+  const own=subscriptions.find(app=>app.appId===appId);
+  const messagesSubscribed=own ? own.fields?.includes('messages') ?? null
+    : subscriptions.some(app=>!app.appId) ? null : false;
+  return {subscriptionCount:data.length,subscriptions,messagesSubscribed};
+}
+
 // Read-only operational metadata. Tokens and message bodies never leave storage.
 function adminOnly(env) {
   return (req, res, next) => {
@@ -55,11 +71,7 @@ function installAdminStatus(app, {getStore, env, fetchImpl = fetch, webhookTraff
         if(/^\d+$/.test(profile?.id||''))item.profileId=profile.id;
         const subscriptions=await request(row.account_id+'/subscribed_apps?fields=id,subscribed_fields','account-subscription');
         if(Array.isArray(subscriptions?.data)){
-          item.subscriptionCount=subscriptions.data.length;
-          item.subscriptions=subscriptions.data.filter(app=>/^\d+$/.test(String(app.id))).map(app=>({
-            appId:String(app.id),fields:Array.isArray(app.subscribed_fields)?app.subscribed_fields.filter(field=>typeof field==='string'):null}));
-          const own=item.subscriptions.find(app=>app.appId===env.META_APP_ID);
-          item.messagesSubscribed=own ? own.fields?.includes('messages') ?? null : false;
+          Object.assign(item,summarizeSubscriptions(subscriptions.data,env.META_APP_ID));
         }
         try{
           const token=require('./instagram-auth').unseal(row.token_cipher,env);
@@ -104,4 +116,4 @@ function installAdminStatus(app, {getStore, env, fetchImpl = fetch, webhookTraff
     }catch{res.sendStatus(502);}
   });
 }
-module.exports = {installAdminStatus, adminOnly};
+module.exports = {installAdminStatus, adminOnly, summarizeSubscriptions};
