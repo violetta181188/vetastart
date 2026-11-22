@@ -54,6 +54,24 @@ function installInboxProbe(app, {getStore, env, fetchImpl = fetch, now = Date.no
       if(!row)return res.sendStatus(404);
       if(row.token_mode!=='unified')return res.sendStatus(409);
       const result=await readTestInbox({id,token:unseal(row.token_cipher,env),version:env.META_GRAPH_API_VERSION,fetchImpl,now});
+      if(req.query.routing==='1'){
+        const candidate=result.candidates[0];
+        if(!candidate)result.summary.routing={checked:false,reason:'recent_test_not_found'};
+        else try{
+          const url=new URL(`https://graph.facebook.com/${env.META_GRAPH_API_VERSION}/${id}/thread_owner`);
+          url.searchParams.set('recipient',candidate.senderId);
+          const response=await fetchImpl(url.href,{headers:{Authorization:'Bearer '+unseal(row.token_cipher,env)},
+            redirect:'error',signal:AbortSignal.timeout(15000)});
+          const body=await response.json();
+          const owner=body?.data?.[0]?.thread_owner?.app_id ?? body?.thread_owner?.app_id;
+          if(response.ok&&!body?.error){
+            result.summary.routing={checked:true,...(/^\d+$/.test(String(owner||''))?
+              {ownerAppId:String(owner),appMatches:String(owner)===env.META_APP_ID}:{ownerReported:false})};
+          }else result.summary.routing={checked:false,status:response.status,
+            ...(Number.isSafeInteger(body?.error?.code)?{metaCode:body.error.code}:{}),
+            ...(Number.isSafeInteger(body?.error?.error_subcode)?{metaSubcode:body.error.error_subcode}:{})};
+        }catch{result.summary.routing={checked:false,reason:'routing_request_unavailable'};}
+      }
       res.json(result.summary);
     }catch(error){res.status(502).json(error.diagnostic||{error:'inbox_probe_unavailable'});}
   });

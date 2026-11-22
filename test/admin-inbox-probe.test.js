@@ -2,7 +2,7 @@ const {test}=require('node:test');const assert=require('node:assert/strict');
 const express=require('express');const {seal}=require('../instagram-auth');
 const {installInboxProbe}=require('../admin-inbox-probe');
 const env={VETASTART_ADMIN_TOKEN:'fixture-administrator-secret-over-32-characters',
-  META_GRAPH_API_VERSION:'v27.0',VETASTART_TOKEN_KEY:Buffer.alloc(32,7).toString('base64')};
+  META_APP_ID:'123',META_GRAPH_API_VERSION:'v27.0',VETASTART_TOKEN_KEY:Buffer.alloc(32,7).toString('base64')};
 const time=Date.parse('2026-11-22T10:00:00Z');
 async function setup(t,fetchImpl,{available=true}={}){
   let reads=0;const db={prepare(sql){assert.match(sql,/NOT EXISTS.*customer_accounts/s);return {get(id){
@@ -11,8 +11,8 @@ async function setup(t,fetchImpl,{available=true}={}){
   const app=express();installInboxProbe(app,{getStore:()=>({db}),env,fetchImpl,now:()=>time});
   const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
   t.after(()=>new Promise(r=>server.close(r)));
-  return {reads:()=>reads,call:(key=env.VETASTART_ADMIN_TOKEN,id='789')=>fetch(
-    `http://127.0.0.1:${server.address().port}/api/admin/instagram/accounts/${id}/test-inbox`,
+  return {reads:()=>reads,call:(key=env.VETASTART_ADMIN_TOKEN,id='789',query='')=>fetch(
+    `http://127.0.0.1:${server.address().port}/api/admin/instagram/accounts/${id}/test-inbox${query}`,
     {headers:{Authorization:'Bearer '+key}})};
 }
 test('inbox probe rejects unauthenticated, malformed and unavailable accounts before external calls',async t=>{
@@ -20,6 +20,21 @@ test('inbox probe rejects unauthenticated, malformed and unavailable accounts be
   assert.equal((await probe.call('wrong')).status,401);assert.equal(probe.reads(),0);
   assert.equal((await probe.call(env.VETASTART_ADMIN_TOKEN,'invalid')).status,400);assert.equal(probe.reads(),0);
   assert.equal((await probe.call()).status,404);
+});
+test('optional routing check reports only the owner application and never requests a transfer',async t=>{
+  const probe=await setup(t,async(endpoint,options)=>{
+    assert.equal(options.method,undefined);
+    const url=new URL(endpoint);
+    if(url.pathname.endsWith('/thread_owner')){
+      assert.equal(url.searchParams.get('recipient'),'321');
+      return Response.json({data:[{recipient:{id:'321'},thread_owner:{app_id:'456'}}]});
+    }
+    return Response.json({data:[{messages:{data:[{id:'private-message',message:'VETASTART ТЕСТ',
+      created_time:'2026-11-22T09:00:00Z',from:{id:'321',username:'violettaproekti'}}]}}]});
+  });
+  const result=await(await probe.call(env.VETASTART_ADMIN_TOKEN,'789','?routing=1')).json();
+  assert.deepEqual(result.routing,{checked:true,ownerAppId:'456',appMatches:false});
+  assert.doesNotMatch(JSON.stringify(result),/321|private-message/);
 });
 test('inbox probe finds only recent incoming test messages without returning conversation content',async t=>{
   const msg=(message,from,created_time='2026-11-22T09:00:00Z')=>({message,from,created_time});
