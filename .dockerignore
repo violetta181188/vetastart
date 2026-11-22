@@ -1,0 +1,15 @@
+.git
+node_modules
+data
+backups
+.env
+.env.*
+*.sqlite*
+*.db
+*.db-*
+*.log
+coverage
+.DS_Store
+.aws
+.codex
+.agents

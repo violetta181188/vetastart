@@ -1,0 +1,41 @@
+# Review-only example. This does not deploy or modify an existing Render service.
+services:
+  - type: web
+    name: vetastart-app-2026
+    runtime: node
+    plan: starter
+    autoDeploy: false
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health/ready
+    disk:
+      name: vetastart-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: VETASTART_PUBLIC_ORIGIN
+        value: https://vetastart-app-2026.onrender.com
+      - key: VETASTART_DB_PATH
+        value: /var/data/vetastart.sqlite
+      - key: VETASTART_PERSISTENT_DATA_DIR
+        value: /var/data
+      - key: VETASTART_READINESS_PROFILE
+        value: runtime
+      - key: VETASTART_SIGNUP_ENABLED
+        value: "false"
+      - key: VETASTART_MAIL_ENABLED
+        value: "false"
+      - key: VETASTART_AUTOMATION_ENABLED
+        value: "false"
+      - key: VETASTART_SEND_ENABLED
+        value: "false"
+      - key: ROBOKASSA_ENABLED
+        value: "false"
+      - key: ROBOKASSA_TEST_MODE
+        value: "true"
+      - key: ROBOKASSA_LIVE_ENABLED
+        value: "false"

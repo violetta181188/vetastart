@@ -1,0 +1,10 @@
+[
+  {
+    "id": "guide-direct",
+    "accountId": "YOUR_INSTAGRAM_ACCOUNT_ID",
+    "trigger": "message",
+    "keyword": "ГАЙД",
+    "reply": "Спасибо за интерес! Здесь будет ссылка на ваш материал.",
+    "enabled": false
+  }
+]

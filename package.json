@@ -1,12 +1,23 @@
-
 {
   "name": "vetastart",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "worker": "node worker.js",
+    "automation": "node automation-runner.js",
+    "send": "node sender.js",
+    "refresh-tokens": "node refresh-tokens.js",
+    "doctor": "node deployment-check.js",
+    "db:backup": "node database-backup.js backup",
+    "db:restore": "node database-backup.js restore",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "nodemailer": "^10.6.1"
   }
 }
