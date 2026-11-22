@@ -1,0 +1,36 @@
+[Unit]
+Description=VetaStart owner automation worker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=vetastart-worker
+Group=vetastart-worker
+WorkingDirectory=/opt/vetastart-worker/current
+EnvironmentFile=/etc/vetastart-worker/worker.env
+Environment=PATH=/opt/vetastart-worker/node/bin:/usr/bin:/bin
+Environment=NODE_OPTIONS=--max-old-space-size=192
+ExecStart=/opt/vetastart-worker/node/bin/node /opt/vetastart-worker/current/automation-runner.js
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TasksMax=64
+MemoryMax=384M
+CPUQuota=25%
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target
