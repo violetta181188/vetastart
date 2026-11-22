@@ -51,6 +51,15 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const oauth=start.headers.get('set-cookie').split(';')[0];
   const callback=await request('/auth/instagram/callback?code=fixture-code&state='+state,{cookie:first+'; '+oauth});
   assert.equal(callback.status,303,await callback.text());
+  const denied=await request('/api/admin/instagram/status',{cookie:first});
+  assert.equal(denied.status,401);
+  const operational=await request('/api/admin/instagram/status',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}});
+  assert.equal(operational.status,200);
+  assert.equal(operational.headers.get('cache-control'),'no-store');
+  const summary=await operational.json();
+  assert.equal(summary.connections[0].account_id,'789');
+  assert.equal(summary.connections[0].connection_status,'active');
+  assert.doesNotMatch(JSON.stringify(summary),/fixture-suat|token_cipher|password_hash|fixture-secret/);
   const rule=await request('/api/customer/rules',{cookie:first,method:'POST',body:{accountId:'789',keyword:'гайд',reply:'Ваша ссылка',enabled:true}});
   assert.equal(rule.status,201,await rule.text());
   const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}]}]});
