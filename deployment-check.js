@@ -11,7 +11,12 @@ function inspectConfiguration(env,{profile='runtime',nodeVersion=process.version
  const originOk=(()=>{try{const u=new URL(env.VETASTART_PUBLIC_ORIGIN);return u.origin===env.VETASTART_PUBLIC_ORIGIN&&
   (u.protocol==='https:'||(!production&&u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)));}catch{return false;}})();
  if(production||profile==='pilot')add('VETASTART_PUBLIC_ORIGIN',originOk);
- if(production){
+ if(production&&env.DATABASE_URL){
+  let valid=false;try{const url=new URL(env.DATABASE_URL);valid=['postgres:','postgresql:'].includes(url.protocol)&&!!url.hostname;}catch{}
+  add('DATABASE_URL',valid);
+  add('VETASTART_PG_SCHEMA',/^vetastart_[a-z0-9_]{1,32}$/.test(env.VETASTART_PG_SCHEMA||'vetastart_pilot'));
+  add('VETASTART_AUTH_DEV_MODE',env.VETASTART_AUTH_DEV_MODE!=='true');
+ }else if(production){
   add('VETASTART_DB_PATH',present('VETASTART_DB_PATH')&&path.isAbsolute(env.VETASTART_DB_PATH));
   const root=env.VETASTART_PERSISTENT_DATA_DIR,db=env.VETASTART_DB_PATH;
   add('VETASTART_PERSISTENT_DATA_DIR',!!root&&!!db&&path.isAbsolute(root)&&path.isAbsolute(db)&&

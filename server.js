@@ -84,6 +84,8 @@ return app;
 const app = createApp();
 const port = process.env.PORT || 10000;
 if (require.main === module) {
+ if(process.env.DATABASE_URL){require('./postgres-app/start').main().catch(()=>{console.error('PostgreSQL startup failed: check database settings and permissions');process.exitCode=1;});}
+ else {
   const { runCycle, createRunner } = require('./automation-runner');
   const runner = process.env.VETASTART_AUTOMATION_ENABLED === 'true' ? createRunner({
     intervalMs: Number(process.env.VETASTART_AUTOMATION_INTERVAL_MS || 10000),
@@ -102,6 +104,7 @@ if (require.main === module) {
     app.locals.close();
   };
   process.once('SIGTERM', shutdown); process.once('SIGINT', shutdown);
+ }
 }
 module.exports = app;
 module.exports.createApp = createApp;

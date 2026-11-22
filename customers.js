@@ -145,6 +145,7 @@ function installCustomers(app, { getStore, env, now = Date.now, sendMail }) {
     res.clearCookie(cookieName, { path: '/' }); res.json({ ok: true });
   });
   router.get('/accounts', (req, res) => res.json(req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=?').all(req.customer.id)));
+  router.get('/legacy-projects',(_req,res)=>res.json([]));
   router.get('/rules', (req, res) => res.json(req.db.prepare('SELECT id,account_id,keyword,reply,enabled FROM customer_rules WHERE customer_id=?').all(req.customer.id)));
   router.get('/activity', (req, res) => res.json(req.db.prepare(`SELECT d.id,d.account_id,d.status,d.created_at
     FROM drafts d JOIN customer_accounts a ON a.account_id=d.account_id

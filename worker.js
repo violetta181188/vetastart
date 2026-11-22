@@ -30,5 +30,6 @@ function main() {
 module.exports = { processPending };
 
 if (require.main === module) {
-  try { main(); } catch { console.error('Scenario processing failed: check configuration and database access'); process.exitCode = 1; }
+  Promise.resolve().then(()=>process.env.DATABASE_URL?require('./postgres-app/commands').execute('worker'):main())
+    .catch(()=>{console.error('Scenario processing failed: check configuration and database access');process.exitCode=1;});
 }

@@ -17,16 +17,17 @@ test('Unified exchanges Meta credentials then selects assigned Instagram ID, not
       assert.equal(new URL(url).searchParams.get('client_secret'), 'test-secret');
       return Response.json({ access_token: 'suat', expires_in: 86400 });
     }
+    if(url.endsWith('/subscribed_apps'))return Response.json({success:true});
     assert.equal(url, 'https://graph.facebook.com/v27.0/me/assigned_instagram_accounts');
     assert.equal(init.headers.Authorization, 'Bearer suat');
     return Response.json({ data: [{ id: '789' }] });
   }, () => 1000);
   assert.equal(result.businessId, '456'); assert.equal(result.configId, '12');
   assert.equal(result.accountId, '789'); assert.equal(result.expiresAt, 86401000);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 });
 test('Unified requires explicit non-expiring configuration when expiry is absent', async () => {
-  const fake = async url => Response.json(url.includes('/oauth/') ? { access_token: 'suat' } : { data: [{ id: '789' }] });
+  const fake = async url => Response.json(url.includes('/oauth/') ? { access_token: 'suat' } : url.endsWith('/subscribed_apps')?{success:true}:{ data: [{ id: '789' }] });
   await assert.rejects(connectUnified(env, 'code', fake), /expiration/);
   assert.equal((await connectUnified({ ...env, META_SUAT_NON_EXPIRING: 'true' }, 'code', fake)).expiresAt, 0);
   await assert.rejects(connectUnified({ ...env, META_CLIENT_BUSINESS_ID: '' }, 'code', fake));

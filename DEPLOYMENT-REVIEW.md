@@ -26,3 +26,14 @@ Git, зависимости с хоста и базу данных.
 и переменные из .env.example через защищённые настройки; выполнить doctor
 pilot и настоящий тест Instagram. Не открывать регистрацию и реальные платежи
 до проверки соответствующих сервисов.
+
+
+## PostgreSQL update
+
+The application now selects the complete asynchronous PostgreSQL backend when
+DATABASE_URL is present. Authentication, Meta state/tokens, scenarios, billing,
+quotas and background jobs share the same isolated schema. Existing public
+staging tables are preserved, compatible password hashes are imported internally,
+and legacy draft projects stay read-only until their Instagram accounts are
+actually connected. Full integration tests were run against local PostgreSQL 16;
+real Meta/SMTP/Robokassa operations still require external validation.

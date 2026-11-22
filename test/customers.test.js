@@ -11,7 +11,7 @@ async function setup(t) {
     INSTAGRAM_REDIRECT_URI:'https://example.test/auth/instagram/callback',
     VETASTART_ADMIN_TOKEN:'test-admin-key-at-least-thirty-two-characters', VETASTART_TOKEN_KEY:Buffer.alloc(32,2).toString('base64') };
   const app = createApp({store,env,fetchImpl:async url=>Response.json(url.includes('/oauth/')
-    ? {access_token:'test-suat',expires_in:86400} : {data:[{id:'789'}]})});
+    ? {access_token:'test-suat',expires_in:86400} : url.endsWith('/subscribed_apps')?{success:true}:{data:[{id:'789'}]})});
   const server=app.listen(0,'127.0.0.1'); await new Promise(r=>server.once('listening',r));
   const base=`http://127.0.0.1:${server.address().port}`;env.VETASTART_PUBLIC_ORIGIN=base;
   t.after(async()=>{await new Promise(r=>server.close(r));store.close();});

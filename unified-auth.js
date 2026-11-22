@@ -33,6 +33,11 @@ async function connectUnified(env, code, fetchImpl = fetch, now = Date.now) {
     ? valid.find(a => a.id === env.INSTAGRAM_ACCOUNT_ID)
     : (valid.length === 1 && !assets.paging?.next ? valid[0] : null);
   if (!account) throw new Error('Select an assigned Instagram account explicitly');
+  const subscribed=await request(`https://graph.facebook.com/${version}/${account.id}/subscribed_apps`,{
+    method:'POST',headers:{Authorization:`Bearer ${token.access_token}`},
+    body:new URLSearchParams({subscribed_fields:'messages'})
+  });
+  if(subscribed.success!==true)throw new Error('Instagram message subscription was not confirmed');
   return { accessToken: token.access_token, expiresAt, issuedAt, accountId: account.id,
     businessId: env.META_CLIENT_BUSINESS_ID, configId: env.INSTAGRAM_CONFIG_ID };
 }

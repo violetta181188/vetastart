@@ -29,6 +29,7 @@ body{background:#100d1c;color:#f8f7ff;font:17px/1.6 system-ui;margin:auto;max-wi
 <p><small>Поддерживаются входящие сообщения Direct. Отправка требует отдельно настроенного обработчика; создание сценария не подтверждает запуск Instagram-интеграции.</small></p>
 <button>Сохранить сценарий</button></form></section>
 <section><h2>Ваши сценарии</h2><div id="rules"></div></section>
+<section id="legacy-section" hidden><h2>Черновики прежнего кабинета</h2><p>Они сохранены для просмотра. Для автоматизации создайте сценарий после подключения Instagram.</p><div id="legacy"></div></section>
 <section><h2>Последние ответы</h2><button id="refresh">Обновить статусы</button><div id="activity"></div></section>
 <section><h2>Тариф и оплата</h2><p id="billing-status"></p><div id="plans"></div><h3>Ваши счета</h3><div id="invoices"></div>
 <p><small>Оплачивается 30 дней доступа. Автоматических списаний нет. Если текущий период ещё действует, следующий начнётся после него.</small></p></section></main>
@@ -60,6 +61,12 @@ async function load() {
  for (const a of accounts) { const option = document.createElement('option'); option.value = a.account_id; option.textContent = a.account_id; el('account-select').append(option); }
  el('rule').querySelector('button').disabled = accounts.length === 0 || !sub.active;
  const rules = await api('rules'); el('rules').replaceChildren();
+ const legacy=await api('legacy-projects');el('legacy-section').hidden=!legacy.length;el('legacy').replaceChildren();
+ for(const project of legacy){
+  const card=document.createElement('article'),heading=document.createElement('strong');heading.textContent=project.name;card.append(heading);
+  for(const scenario of project.scenarios){const p=document.createElement('p');p.textContent=scenario.name+' · '+scenario.keyword+' · '+(scenario.messages||[]).join(' / ');card.append(p);}
+  el('legacy').append(card);
+ }
  const billing=await api('billing');
  el('billing-status').textContent=!billing.enabled ? 'Робокасса ещё не подключена. Оплата недоступна.' : billing.isTest ? 'Тестовый режим: платежи не включают платную подписку.' : 'Оплата через Робокассу. Стоимость указана в рублях.';
  el('plans').replaceChildren();

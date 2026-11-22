@@ -10,7 +10,7 @@ async function main() {
     if (result.retry || result.reauthorizationRequired) process.exitCode = 1;
   } finally { store.close(); }
 }
-if (require.main === module) main().catch(() => {
+if (require.main === module) (process.env.DATABASE_URL?require('./postgres-app/commands').execute('refresh'):main()).catch(() => {
   console.error('Instagram token maintenance failed: check configuration and connection status');
   process.exitCode = 1;
 });

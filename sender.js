@@ -88,7 +88,7 @@ async function main() {
   finally { store.close(); }
 }
 
-if (require.main === module) main().catch(() => {
+if (require.main === module) (process.env.DATABASE_URL?require('./postgres-app/commands').execute('send'):main()).catch(() => {
   console.error('Instagram sender stopped: check configuration, database and delivery statuses');
   process.exitCode = 1;
 });

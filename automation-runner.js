@@ -76,5 +76,5 @@ async function main() {
   process.once('SIGTERM', shutdown); process.once('SIGINT', shutdown);
   runner.start();
 }
-if (require.main === module) main().catch(() => { console.error('Automation runner could not start'); process.exitCode = 1; });
+if (require.main === module) (process.env.DATABASE_URL?require('./postgres-app/commands').execute('automation'):main()).catch(() => { console.error('Automation runner could not start'); process.exitCode = 1; });
 module.exports = { runCycle, createRunner };
