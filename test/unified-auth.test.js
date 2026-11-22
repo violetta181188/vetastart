@@ -26,12 +26,43 @@ test('Unified exchanges Meta credentials then selects assigned Instagram ID, not
   assert.equal(result.accountId, '789'); assert.equal(result.expiresAt, 86401000);
   assert.equal(calls.length, 3);
 });
-test('Unified requires explicit non-expiring configuration when expiry is absent', async () => {
+test('Unified rejects unverified missing expiry and accepts explicit configuration', async () => {
   const fake = async url => Response.json(url.includes('/oauth/') ? { access_token: 'suat' } : url.endsWith('/subscribed_apps')?{success:true}:{ data: [{ id: '789' }] });
   await assert.rejects(connectUnified(env, 'code', fake), /expiration/);
   assert.equal((await connectUnified({ ...env, META_SUAT_NON_EXPIRING: 'true' }, 'code', fake)).expiresAt, 0);
   await assert.rejects(connectUnified({ ...env, META_CLIENT_BUSINESS_ID: '' }, 'code', fake));
   await assert.rejects(connectUnified({ ...env, INSTAGRAM_ACCOUNT_ID: '999' }, 'code', fake));
+});
+test('Unified verifies omitted expiry with Meta and respects data access expiry', async () => {
+  for (const [expires_at, data_access_expires_at, expected] of [[0, 0, 0], [0, 100, 100000], [200, 100, 100000]]) {
+    const result = await connectUnified(env, 'code', async (url, options) => {
+      if (url.includes('/oauth/')) return Response.json({access_token:'private-suat'});
+      if (url.includes('/debug_token')) {
+        assert.equal(new URL(url).searchParams.get('input_token'), 'private-suat');
+        assert.equal(options.headers.Authorization, 'Bearer 123|test-secret');
+        return Response.json({data:{is_valid:true,app_id:'123',expires_at,data_access_expires_at}});
+      }
+      return Response.json(url.endsWith('/subscribed_apps') ? {success:true} : {data:[{id:'789'}]});
+    }, () => 1000);
+    assert.equal(result.expiresAt, expected);
+  }
+});
+test('Unified rejects invalid, foreign-app, missing and expired inspected tokens', async () => {
+  for (const details of [{is_valid:false,app_id:'123',expires_at:0},
+    {is_valid:true,app_id:'999',expires_at:0}, {is_valid:true,app_id:'123'},
+    {is_valid:true,app_id:'123',expires_at:1},
+    {is_valid:true,app_id:'123',expires_at:0,data_access_expires_at:1}]) {
+    await assert.rejects(connectUnified(env,'code',async url => Response.json(
+      url.includes('/oauth/') ? {access_token:'private-suat'} : {data:details}), () => 1000));
+  }
+});
+test('Unified diagnostics retain stage and numeric Meta codes without response secrets', async () => {
+  await assert.rejects(connectUnified(env,'private-code',async () => Response.json(
+    {error:{code:190,error_subcode:123,message:'private-suat private-code test-secret'}},{status:400})), error => {
+    assert.deepEqual(error.oauthDiagnostic,{stage:'exchange',status:400,metaCode:190,metaSubcode:123});
+    assert.doesNotMatch(error.message + JSON.stringify(error.oauthDiagnostic), /private|test-secret/);
+    return true;
+  });
 });
 test('Unified token is never renewed through Instagram endpoints and sends through Facebook Graph', async t => {
   const store = new AutomationStore(':memory:'); t.after(() => store.close()); initialize(store.db);

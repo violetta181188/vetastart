@@ -246,7 +246,9 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
         token_mode='instagram', business_id=NULL, config_id=NULL`).run(profile.user_id, seal(longLived.accessToken, env), issuedAt + longLived.expiresIn * 1000, issuedAt);
       });
       return res.redirect(303, '/connect/instagram/success');
-    } catch {
+    } catch (error) {
+      const diagnostic = error?.oauthDiagnostic || {stage: 'callback-validation-or-storage'};
+      console.error('Instagram OAuth failed', JSON.stringify(diagnostic));
       return res.status(502).send('Подключение не завершено. Проверьте настройки Meta и повторите вход.');
     }
   });

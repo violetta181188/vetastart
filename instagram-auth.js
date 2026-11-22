@@ -229,7 +229,9 @@ function installInstagramAuth(app, { getStore, env, fetchImpl = fetch, now = Dat
       } catch (error) { db.exec('ROLLBACK'); throw error; }
       // Drop code/state from the address bar; never echo tokens or account data.
       return res.redirect(303, '/connect/instagram/success');
-    } catch {
+    } catch (error) {
+      const diagnostic = error?.oauthDiagnostic || {stage: 'callback-validation-or-storage'};
+      console.error('Instagram OAuth failed', JSON.stringify(diagnostic));
       return res.status(502).send('Подключение не завершено. Проверьте настройки Meta и повторите вход.');
     }
   });
