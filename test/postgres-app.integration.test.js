@@ -21,7 +21,7 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.ok(endpoint.startsWith('https://graph.facebook.com/'));
   if(endpoint.includes('/oauth/access_token'))return Response.json({access_token:'fixture-suat-'+activeAccount,expires_in:86400});
   if(endpoint.endsWith('/me/assigned_instagram_accounts'))return Response.json({data:[{id:activeAccount}]});
-  if(endpoint.endsWith('/subscribed_apps'))return Response.json(options.method==='POST'?{success:true}:{data:[{id:'123',subscribed_fields:['messages']}]});
+  if(endpoint.includes('/subscribed_apps'))return Response.json(options.method==='POST'?{success:true}:{data:[{id:'123',subscribed_fields:['messages']}]});
   if(endpoint.endsWith('?fields=id,username'))return Response.json({id:activeAccount,username:'fixture_account'});
   outbound.push({endpoint,options});return Response.json({message_id:'confirmed-'+outbound.length});
  }});
@@ -63,7 +63,10 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.doesNotMatch(JSON.stringify(summary),/fixture-suat|token_cipher|password_hash|fixture-secret/);
   assert.equal((await request('/api/admin/instagram/diagnostics')).status,401);
   const diagnostics=await(await request('/api/admin/instagram/diagnostics',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).json();
-  assert.deepEqual(diagnostics,{connections:[{accountId:'789',username:'fixture_account',messagesSubscribed:true}]});
+  assert.deepEqual(diagnostics,{connections:[{accountId:'789',username:'fixture_account',subscriptions:[{appId:'123',fields:['messages']}],messagesSubscribed:true}]});
+  assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',cookie:first})).status,401);
+  assert.equal((await request('/api/admin/instagram/accounts/unknown/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,400);
+  assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,200);
   const rule=await request('/api/customer/rules',{cookie:first,method:'POST',body:{accountId:'789',keyword:'гайд',reply:'Ваша ссылка',enabled:true}});
   assert.equal(rule.status,201,await rule.text());
   const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}]}]});

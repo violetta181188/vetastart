@@ -51,14 +51,32 @@ function installAdminStatus(app, {getStore, env, fetchImpl = fetch}) {
         };
         const profile=await request(row.account_id+'?fields=id,username','profile');
         if(typeof profile?.username==='string')item.username=profile.username;
-        const subscriptions=await request(row.account_id+'/subscribed_apps','account-subscription');
+        const subscriptions=await request(row.account_id+'/subscribed_apps?fields=id,subscribed_fields','account-subscription');
         if(Array.isArray(subscriptions?.data)){
-          item.messagesSubscribed=subscriptions.data.some(app=>String(app.id)===env.META_APP_ID&&app.subscribed_fields?.includes('messages'));
+          item.subscriptions=subscriptions.data.filter(app=>/^\d+$/.test(String(app.id))).map(app=>({
+            appId:String(app.id),fields:Array.isArray(app.subscribed_fields)?app.subscribed_fields.filter(field=>typeof field==='string'):null}));
+          const own=item.subscriptions.find(app=>app.appId===env.META_APP_ID);
+          item.messagesSubscribed=own ? own.fields?.includes('messages') ?? null : false;
         }
         connections.push(item);
       }
       res.json({connections});
     }catch{res.sendStatus(503);}
+  });
+  app.post('/api/admin/instagram/accounts/:id/subscribe',adminOnly(env),async(req,res)=>{
+    try{
+      if(!/^\d+$/.test(req.params.id))return res.sendStatus(400);
+      const row=await getStore().db.prepare("SELECT token_cipher FROM instagram_connections WHERE account_id=? AND connection_status='active'").get(req.params.id);
+      if(!row)return res.sendStatus(404);
+      const token=require('./instagram-auth').unseal(row.token_cipher,env);
+      const response=await fetchImpl(`https://graph.facebook.com/${env.META_GRAPH_API_VERSION}/${req.params.id}/subscribed_apps`,{
+        method:'POST',headers:{Authorization:'Bearer '+token},body:new URLSearchParams({subscribed_fields:'messages'}),
+        redirect:'error',signal:AbortSignal.timeout(15000)});
+      const body=await response.json();
+      if(!response.ok||body.success!==true)return res.status(502).json({error:'account_subscription_rejected',
+        ...(Number.isSafeInteger(body?.error?.code)?{metaCode:body.error.code}:{})});
+      res.json({subscribed:true});
+    }catch{res.sendStatus(502);}
   });
 }
 module.exports = {installAdminStatus, adminOnly};
