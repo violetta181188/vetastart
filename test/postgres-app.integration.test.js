@@ -92,7 +92,11 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const download=await request(pdfPath);
   assert.equal(download.status,200);
   assert.deepEqual(Buffer.from(await download.arrayBuffer()),pdf);
-  const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}]}]});
+  const sentAt=Date.now();
+  const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[
+   {timestamp:sentAt-60000,sender:{id:'322'},recipient:{id:'789'},message:{mid:'old-draft',text:'ГАЙД'}},
+   {timestamp:sentAt,sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}
+  ]}]});
   for(let n=0;n<2;n++){
    const webhook=await request('/webhooks/instagram',{method:'POST',raw:body,headers:{'Content-Type':'application/json',
     'x-hub-signature-256':'sha256='+crypto.createHmac('sha256',env.META_APP_SECRET).update(body).digest('hex')}});
@@ -102,7 +106,8 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const traffic=(await(await request('/api/admin/instagram/status',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).json()).webhookTraffic;
   assert.equal(traffic.received,3);assert.equal(traffic.accepted,2);assert.equal(traffic.signatureRejected,1);
   assert.doesNotMatch(JSON.stringify(traffic),/fixture|ГАЙД|m1/);
-  const result=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'true'},fetchImpl:async(endpoint,options)=>{
+  const result=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'true',
+   VETASTART_SEND_ACCOUNT_ID:'789',VETASTART_SEND_SINCE_MS:String(sentAt)},fetchImpl:async(endpoint,options)=>{
    if (options.method === 'GET') {
     assert.equal(endpoint, 'https://graph.facebook.com/v27.0/321?fields=is_user_follow_business');
     return Response.json({is_user_follow_business:true});
@@ -117,7 +122,9 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
     {type:'web_url',title:'Курс',url:'https://vetastart.ru/'}
    ]
   }}});
-  const activity=await(await request('/api/customer/activity',{cookie:first})).json();assert.equal(activity[0].status,'sent');
+  const activity=await(await request('/api/customer/activity',{cookie:first})).json();
+  assert.deepEqual(activity.map(row=>row.status).sort(),['draft','sent']);
+  assert.equal((await store.db.prepare("SELECT status FROM drafts WHERE recipient_id='322'").get()).status,'draft');
   assert.deepEqual(await(await request('/api/customer/activity',{cookie:second})).json(),[]);
  });
  await t.test('Robokassa callback grants exactly one period using PostgreSQL identity invoice',async()=>{

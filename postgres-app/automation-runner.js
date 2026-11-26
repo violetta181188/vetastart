@@ -1,3 +1,4 @@
+const {outboundScope} = require('./outbound-scope');
 const path = require('node:path');
 const {AutomationStore} = require('./automation');
 const {processPending} = require('./worker');
@@ -22,6 +23,7 @@ async function runCycle(store, {env = process.env, fetchImpl = fetch, now = Date
     env
   }));
   if (env.VETASTART_SEND_ENABLED !== 'true') return result;
+  const scope = outboundScope(env);
   await initialize(store.db);
   await initializeCustomers(store.db);
   await store.db.exec(`CREATE TABLE IF NOT EXISTS automation_account_runs (
@@ -32,7 +34,8 @@ async function runCycle(store, {env = process.env, fetchImpl = fetch, now = Date
     LEFT JOIN automation_account_runs r ON r.account_id=c.account_id
     WHERE c.connection_status='active' AND (a.customer_id IS NOT NULL OR
       EXISTS (SELECT 1 FROM operator_rules o WHERE o.account_id=c.account_id AND o.enabled=1))
-    ORDER BY COALESCE(r.last_run_at,0),c.account_id LIMIT 25`).all();
+    ${scope ? 'AND c.account_id = ?' : ''}
+    ORDER BY COALESCE(r.last_run_at,0),c.account_id LIMIT 25`).all(...(scope ? [scope.accountId] : []));
   for (const account of accounts) {
     await store.db.prepare(`INSERT INTO automation_account_runs VALUES (?,?,'running')
       ON CONFLICT(account_id) DO UPDATE SET last_run_at=excluded.last_run_at,status='running'`).run(account.account_id, now());

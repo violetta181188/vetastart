@@ -1,3 +1,4 @@
+const {outboundScope} = require('./outbound-scope');
 const {directMessage} = require('../message-buttons');
 const path = require('node:path');
 const {AutomationStore} = require('./automation');
@@ -19,6 +20,8 @@ async function configuration(env, store) {
   };
 }
 async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Date.now, limit = 100, draftId = null} = {}) {
+  const scope = outboundScope(env);
+  if (scope && env.INSTAGRAM_ACCOUNT_ID !== scope.accountId) throw new Error('Instagram account outside sending scope');
   if (env.VETASTART_SEND_ENABLED === 'true' && !env.INSTAGRAM_ACCESS_TOKEN && (/^\d+$/).test(env.INSTAGRAM_ACCOUNT_ID || '')) {
     await refreshConnections(store, {
       env,
@@ -36,7 +39,8 @@ async function sendDrafts(store, {env = process.env, fetchImpl = fetch, now = Da
   };
   const rows = await store.db.prepare(`SELECT d.*, e.type, e.occurred_at FROM drafts d
     JOIN events e ON e.id = d.event_id WHERE d.status = 'draft' AND d.account_id = ?
-    ${draftId===null?'':'AND d.id = ?'} LIMIT ?`).all(config.accountId,...(draftId===null?[]:[draftId]),limit);
+    ${draftId === null ? '' : 'AND d.id = ?'} ${scope ? 'AND e.occurred_at >= ?' : ''}
+    LIMIT ?`).all(config.accountId, ...(draftId === null ? [] : [draftId]), ...(scope ? [scope.since] : []), limit);
   for (const draft of rows) {
     const age = now() - draft.occurred_at;
     const hasOwnership = await store.db.prepare("SELECT name FROM sqlite_master WHERE name='customer_accounts'").get();

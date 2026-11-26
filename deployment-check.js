@@ -42,6 +42,11 @@ function inspectConfiguration(env,{profile='runtime',nodeVersion=process.version
   add('VETASTART_TOKEN_KEY',Buffer.from(env.VETASTART_TOKEN_KEY||'','base64').length===32);
   add('INSTAGRAM_REDIRECT_URI',originOk&&env.INSTAGRAM_REDIRECT_URI===env.VETASTART_PUBLIC_ORIGIN+'/auth/instagram/callback');
  }
+ if(env.VETASTART_SEND_ENABLED==='true'&&(present('VETASTART_SEND_ACCOUNT_ID')||present('VETASTART_SEND_SINCE_MS'))){
+  let valid=false;
+  try{valid=Boolean(require('./postgres-app/outbound-scope').outboundScope(env));}catch{}
+  add('VETASTART_SEND_SCOPE',valid && Boolean(env.DATABASE_URL));
+ }
  if(env.VETASTART_AUTOMATION_ENABLED==='true'){
   const interval=Number(env.VETASTART_AUTOMATION_INTERVAL_MS||10000);
   add('VETASTART_AUTOMATION_INTERVAL_MS',Number.isInteger(interval)&&interval>=1000);
