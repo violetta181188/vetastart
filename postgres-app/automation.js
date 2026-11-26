@@ -66,7 +66,7 @@ class AutomationStore {
     const eventColumns = (await this.db.prepare('PRAGMA table_info(events)').all()).map(c => c.name);
     if (!eventColumns.includes('occurred_at')) await this.db.exec('ALTER TABLE events ADD COLUMN occurred_at INTEGER');
     const draftColumns = (await this.db.prepare('PRAGMA table_info(drafts)').all()).map(c => c.name);
-    for (const [name, type] of [['attempted_at', 'TEXT'], ['message_id', 'TEXT'], ['failure_code', 'TEXT']]) {
+    for (const [name, type] of [['attempted_at', 'TEXT'], ['message_id', 'TEXT'], ['failure_code', 'TEXT'], ['message_buttons', 'TEXT'], ['require_follow', 'INTEGER NOT NULL DEFAULT 0']]) {
       if (!draftColumns.includes(name)) await this.db.exec(`ALTER TABLE drafts ADD COLUMN ${name} ${type}`);
     }
   }
@@ -96,7 +96,7 @@ class AutomationStore {
           rule.accountId === event.account_id && rule.trigger === event.type), event.text);
         if (rule) {
           await this.db.prepare(`INSERT INTO drafts
-            (id, event_id, scenario_id, account_id, recipient_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(crypto.randomUUID(), event.id, rule.id, event.account_id, event.sender_id, rule.reply, new Date().toISOString());
+            (id, event_id, scenario_id, account_id, recipient_id, text, created_at, message_buttons, require_follow) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(crypto.randomUUID(), event.id, rule.id, event.account_id, event.sender_id, rule.reply, new Date().toISOString(), rule.messageButtons ?? null, Number(rule.requireFollow === true));
           drafts++;
         }
         await this.db.prepare('UPDATE events SET status = ? WHERE id = ?').run(rule ? 'drafted' : 'unmatched', event.id);

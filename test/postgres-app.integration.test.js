@@ -73,8 +73,22 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',cookie:first})).status,401);
   assert.equal((await request('/api/admin/instagram/accounts/unknown/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,400);
   assert.equal((await request('/api/admin/instagram/accounts/789/subscribe',{method:'POST',headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}})).status,200);
-  const rule=await request('/api/customer/rules',{cookie:first,method:'POST',body:{accountId:'789',keyword:'гайд',reply:'Ваша ссылка',enabled:true}});
-  assert.equal(rule.status,201,await rule.text());
+  const pdf=Buffer.from('%PDF-1.4\n%%EOF\n');
+  const rule=await request('/api/customer/rules',{cookie:first,method:'POST',body:{
+   accountId:'789',keyword:'гайд',reply:'Что хотите выбрать?',enabled:true,requireFollow:true,buttons:[
+    {type:'pdf',title:'Промпт',filename:'Промпт.pdf',data:pdf.toString('base64')},
+    {type:'url',title:'Курс',url:'https://vetastart.ru/'}
+   ]
+  }});
+  assert.equal(rule.status,201,await rule.clone().text());
+  const preview=await request('/api/customer/rules/preview',{cookie:first,method:'POST',body:{accountId:'789',phrase:'гаайд'}});
+  assert.equal(preview.status,200,await preview.clone().text());
+  const [match]=(await preview.json()).matches;
+  assert.equal(match.requireFollow,true);
+  const pdfPath='/automation-files/'+match.buttons[0].fileId;
+  const download=await request(pdfPath);
+  assert.equal(download.status,200);
+  assert.deepEqual(Buffer.from(await download.arrayBuffer()),pdf);
   const body=JSON.stringify({object:'instagram',entry:[{id:'789',messaging:[{timestamp:Date.now(),sender:{id:'321'},recipient:{id:'789'},message:{mid:'m1',text:'ГАЙД'}}]}]});
   for(let n=0;n<2;n++){
    const webhook=await request('/webhooks/instagram',{method:'POST',raw:body,headers:{'Content-Type':'application/json',
@@ -86,10 +100,20 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.equal(traffic.received,3);assert.equal(traffic.accepted,2);assert.equal(traffic.signatureRejected,1);
   assert.doesNotMatch(JSON.stringify(traffic),/fixture|ГАЙД|m1/);
   const result=await runCycle(store,{env:{...env,VETASTART_AUTOMATION_ENABLED:'true',VETASTART_SEND_ENABLED:'true'},fetchImpl:async(endpoint,options)=>{
+   if (options.method === 'GET') {
+    assert.equal(endpoint, 'https://graph.facebook.com/v27.0/321?fields=is_user_follow_business');
+    return Response.json({is_user_follow_business:true});
+   }
    outbound.push({endpoint,options});return Response.json({message_id:'sent-confirmed'});
   }});
   assert.equal(result.sent,1);assert.equal(outbound.length,1);
-  const bodySent=JSON.parse(outbound[0].options.body);assert.equal(bodySent.message.text,'Ваша ссылка');
+  const bodySent=JSON.parse(outbound[0].options.body);
+  assert.deepEqual(bodySent.message,{attachment:{type:'template',payload:{
+   template_type:'button',text:'Что хотите выбрать?',buttons:[
+    {type:'web_url',title:'Промпт',url:env.VETASTART_PUBLIC_ORIGIN+pdfPath},
+    {type:'web_url',title:'Курс',url:'https://vetastart.ru/'}
+   ]
+  }}});
   const activity=await(await request('/api/customer/activity',{cookie:first})).json();assert.equal(activity[0].status,'sent');
   assert.deepEqual(await(await request('/api/customer/activity',{cookie:second})).json(),[]);
  });
@@ -143,7 +167,8 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const other=await prepareStore(env);let sent=0;
   try{
    const {sendDrafts}=require('../postgres-app/sender');
-   const options={env:{...env,INSTAGRAM_ACCOUNT_ID:'789',VETASTART_SEND_ENABLED:'true'},fetchImpl:async()=>{
+   const options={env:{...env,INSTAGRAM_ACCOUNT_ID:'789',VETASTART_SEND_ENABLED:'true'},fetchImpl:async(_endpoint,request)=>{
+    if (request.method === 'GET') return Response.json({is_user_follow_business:true});
     sent++;return Response.json({message_id:'quota-confirmed'});
    }};
    await Promise.all([sendDrafts(store,options),sendDrafts(other,options)]);

@@ -1,3 +1,4 @@
+const {directMessage} = require('./message-buttons');
 const path = require('node:path');
 const { AutomationStore } = require('./automation');
 const { connectedToken, refreshConnections, unseal } = require('./instagram-auth');
@@ -46,10 +47,11 @@ async function sendDrafts(store, { env = process.env, fetchImpl = fetch, now = D
     let status = 'unknown', messageId = null, failure = 'delivery_unconfirmed';
     let revoked = false;
     try {
+      const message = await directMessage(draft, config, env.VETASTART_PUBLIC_ORIGIN, fetchImpl);
       const response = await fetchImpl(`https://${config.host}/${config.version}/${config.accountId}/messages`, {
         method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
         headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient: { id: draft.recipient_id }, message: { text: draft.text } })
+        body: JSON.stringify({ recipient: { id: draft.recipient_id }, message })
       });
       // Do not retain/log provider response bodies: they can contain personal data.
       const body = await response.json().catch(() => null);

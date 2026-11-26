@@ -1,3 +1,4 @@
+const {buttonTables, parseButtons, validateButtons, buttonFileError, validFileId, sendPdf} = require('../message-buttons');
 const {safeRouter} = require('./safe-router');
 const crypto = require('node:crypto');
 const {promisify} = require('node:util');
@@ -26,6 +27,7 @@ async function initializeCustomers(db) {
     key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at INTEGER NOT NULL
   );`);
   if (!(await db.prepare('PRAGMA table_info(customers)').all()).some(c => c.name === 'email_verified_at')) await db.exec('ALTER TABLE customers ADD COLUMN email_verified_at INTEGER');
+  await db.exec(buttonTables);
   await initializeRecovery(db);
 }
 async function customerForRequest(req, db, now = Date.now()) {
@@ -51,13 +53,16 @@ async function bindAccount(db, accountId, customerId) {
 }
 async function customerRules(db) {
   await initializeCustomers(db);
-  return (await db.prepare(`SELECT r.* FROM customer_rules r JOIN customer_accounts a
-    ON a.account_id=r.account_id AND a.customer_id=r.customer_id ORDER BY r.id`).all()).map(r => ({
+  return (await db.prepare(`SELECT r.*, b.buttons AS message_buttons,b.require_follow FROM customer_rules r JOIN customer_accounts a
+    ON a.account_id=r.account_id AND a.customer_id=r.customer_id
+    LEFT JOIN rule_message_options b ON b.rule_id=r.id ORDER BY r.id`).all()).map(r => ({
     id: r.id,
     accountId: r.account_id,
     trigger: 'message',
     keyword: r.keyword,
     reply: r.reply,
+    messageButtons: r.message_buttons,
+    requireFollow: Boolean(r.require_follow),
     enabled: !!r.enabled
   }));
 }
@@ -80,9 +85,6 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
     if (!['GET', 'HEAD'].includes(req.method) && !validOrigin(req, env)) return res.sendStatus(403);
     next();
   });
-  router.use(express.json({
-    limit: '8kb'
-  }));
   router.use(async (req, res, next) => {
     try {
       req.db = getStore().db;
@@ -92,6 +94,15 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
     } catch {
       res.sendStatus(503);
     }
+  });
+  const standardJson = express.json({limit: '8kb'});
+  const ruleJson = express.json({limit: '9mb', inflate: false});
+  router.use((req, res, next) => {
+    const savesRule = (req.method === 'POST' && /^\/rules\/?$/i.test(req.path)) ||
+      (req.method === 'PATCH' && /^\/rules\/[^/]+\/?$/i.test(req.path));
+    if (!savesRule) return standardJson(req, res, next);
+    if (!req.customer) return res.sendStatus(401);
+    return ruleJson(req, res, next);
   });
   async function session(res, db, customerId) {
     const token = crypto.randomBytes(32).toString('hex');
@@ -212,69 +223,116 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
   });
   router.get('/accounts', async (req, res) => res.json(await req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=?').all(req.customer.id)));
   router.get('/legacy-projects',async(req,res)=>res.json(await require('./legacy').legacyProjects(req.db,req.customer.email)));
-  router.get('/rules', async (req, res) => res.json(await req.db.prepare(`SELECT r.id,r.account_id,r.keyword,r.reply,r.enabled,
-    (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS contacts,
-    (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id AND d.status='sent') AS sent_contacts,
-    (SELECT MAX(d.created_at) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS last_run
-    FROM customer_rules r WHERE r.customer_id=?`).all(req.customer.id)));
+  router.get('/rules', async (req, res) => {
+    const rows = await req.db.prepare(`SELECT r.id,r.account_id,r.keyword,r.reply,r.enabled,b.buttons AS message_buttons,b.require_follow,
+      (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS contacts,
+      (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id AND d.status='sent') AS sent_contacts,
+      (SELECT MAX(d.created_at) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS last_run
+      FROM customer_rules r LEFT JOIN rule_message_options b ON b.rule_id=r.id WHERE r.customer_id=?`).all(req.customer.id);
+    res.json(rows.map(({message_buttons, require_follow, ...rule}) => ({...rule, buttons: parseButtons(message_buttons), requireFollow: Boolean(require_follow)})));
+  });
   router.get('/activity', async (req, res) => res.json(await req.db.prepare(`SELECT d.id,d.account_id,d.status,d.created_at
     FROM drafts d JOIN customer_accounts a ON a.account_id=d.account_id
     WHERE a.customer_id=? ORDER BY d.created_at DESC,d.id LIMIT 50`).all(req.customer.id)));
+  async function saveMessageOptions(db, ruleId, payload, requireFollow) {
+    for (const file of payload.files) {
+      await db.prepare('INSERT INTO rule_message_files (id,rule_id,filename,content,size_bytes) VALUES (?,?,?,?,?)')
+        .run(file.id, ruleId, file.filename, file.content, file.content.length);
+    }
+    await db.prepare(`INSERT INTO rule_message_options (rule_id,buttons,require_follow) VALUES (?,?,?)
+      ON CONFLICT(rule_id) DO UPDATE SET buttons=excluded.buttons, require_follow=excluded.require_follow
+    `).run(ruleId, JSON.stringify(payload.buttons), Number(requireFollow));
+  }
+  function validRuleText(keyword, reply) {
+    return typeof keyword === 'string' && keyword.trim() && keyword.length <= 100 &&
+      typeof reply === 'string' && reply.trim() && reply.length <= 1000;
+  }
   router.post('/rules', async (req, res) => {
-    const {accountId, keyword, reply, enabled = false} = req.body || ({});
-    if (typeof accountId !== 'string' || typeof keyword !== 'string' || !keyword.trim() || keyword.length > 100 || typeof reply !== 'string' || !reply.trim() || reply.length > 1000 || typeof enabled !== 'boolean') return res.sendStatus(400);
-    if (!await req.db.prepare('SELECT 1 FROM customer_accounts WHERE customer_id=? AND account_id=?').get(req.customer.id, accountId)) return res.sendStatus(403);
-    return await req.db.transaction(async () => {
+    const {accountId, keyword, reply, enabled = false, buttons = [], requireFollow = false} = req.body || {};
+    if (typeof accountId !== 'string' || !validRuleText(keyword, reply) || typeof enabled !== 'boolean' || typeof requireFollow !== 'boolean') return res.sendStatus(400);
+    const payload = validateButtons(buttons, reply);
+    if (!payload || buttonFileError(payload, [])) return res.status(400).json({error: 'invalid_buttons'});
+    const result = await req.db.transaction(async () => {
+      if (!await req.db.prepare('SELECT 1 FROM customer_accounts WHERE customer_id=? AND account_id=?')
+        .get(req.customer.id, accountId)) return {status: 403};
       const entitlement = await access(req.db, req.customer.id, now());
-      if (!entitlement.active) {
-        return res.status(402).json({
-          error: 'subscription_required'
-        });
-      }
+      if (!entitlement.active) return {status: 402};
       const count = (await req.db.prepare('SELECT count(*) AS n FROM customer_rules WHERE customer_id=?').get(req.customer.id)).n;
-      if (count >= entitlement.limits.rules) {
-        return res.status(409).json({
-          error: 'rule_limit_reached'
-        });
-      }
+      if (count >= entitlement.limits.rules) return {status: 409, error: 'rule_limit_reached'};
       const id = crypto.randomUUID();
-      await req.db.prepare('INSERT INTO customer_rules VALUES (?, ?, ?, ?, ?, ?)').run(id, req.customer.id, accountId, keyword.trim(), reply.trim(), Number(enabled));
-      res.status(201).json({
-        id
-      });
+      await req.db.prepare('INSERT INTO customer_rules VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, req.customer.id, accountId, keyword.trim(), reply.trim(), Number(enabled));
+      if (payload.buttons.length || requireFollow) await saveMessageOptions(req.db, id, payload, requireFollow);
+      return {status: 201, id};
     });
+    if (result.id) return res.status(201).json({id: result.id});
+    if (result.error) return res.status(result.status).json({error: result.error});
+    res.sendStatus(result.status);
   });
   router.patch('/rules/:id', async (req, res) => {
-    const {keyword, reply, enabled} = req.body || {};
-    const changesReply = keyword !== undefined || reply !== undefined;
-    if (typeof enabled !== 'boolean' || (changesReply &&
-        (typeof keyword !== 'string' || !keyword.trim() || keyword.length > 100 ||
-        typeof reply !== 'string' || !reply.trim() || reply.length > 1000))) return res.sendStatus(400);
-    if (enabled && !(await access(req.db, req.customer.id, now())).active) return res.sendStatus(402);
-    const result = changesReply
-      ? await req.db.prepare('UPDATE customer_rules SET keyword=?, reply=?, enabled=? WHERE id=? AND customer_id=?')
-        .run(keyword.trim(), reply.trim(), Number(enabled), req.params.id, req.customer.id)
-      : await req.db.prepare('UPDATE customer_rules SET enabled=? WHERE id=? AND customer_id=?')
-        .run(Number(enabled), req.params.id, req.customer.id);
-    res.sendStatus(result.changes ? 204 : 404);
+    const {keyword, reply, enabled, buttons, requireFollow} = req.body || {};
+    const changesReply = keyword !== undefined || reply !== undefined || buttons !== undefined;
+    if (typeof enabled !== 'boolean' || (changesReply && !validRuleText(keyword, reply)) ||
+        (requireFollow !== undefined && typeof requireFollow !== 'boolean')) return res.sendStatus(400);
+    const payload = buttons === undefined ? undefined : validateButtons(buttons, reply);
+    if (payload === null) return res.status(400).json({error: 'invalid_buttons'});
+    const result = await req.db.transaction(async () => {
+      if (enabled && !(await access(req.db, req.customer.id, now())).active) return {status: 402};
+      const rule = await req.db.prepare(`SELECT r.id, b.buttons, b.require_follow FROM customer_rules r
+        LEFT JOIN rule_message_options b ON b.rule_id=r.id WHERE r.id=? AND r.customer_id=?`)
+        .get(req.params.id, req.customer.id);
+      if (!rule) return {status: 404};
+      if (payload) {
+        const files = await req.db.prepare('SELECT id,size_bytes FROM rule_message_files WHERE rule_id=?').all(rule.id);
+        const error = buttonFileError(payload, files);
+        if (error) return {status: 400, error};
+      } else if (changesReply && reply.trim().length > 640 && parseButtons(rule.buttons).length) {
+        return {status: 400, error: 'invalid_buttons'};
+      }
+      if (payload || requireFollow !== undefined) {
+        await saveMessageOptions(req.db, rule.id, payload ?? {buttons: parseButtons(rule.buttons), files: []},
+          requireFollow ?? Boolean(rule.require_follow));
+      }
+      if (changesReply) {
+        await req.db.prepare('UPDATE customer_rules SET keyword=?, reply=?, enabled=? WHERE id=? AND customer_id=?')
+          .run(keyword.trim(), reply.trim(), Number(enabled), rule.id, req.customer.id);
+      } else {
+        await req.db.prepare('UPDATE customer_rules SET enabled=? WHERE id=? AND customer_id=?')
+          .run(Number(enabled), rule.id, req.customer.id);
+      }
+      return {status: 204};
+    });
+    if (result.error) return res.status(result.status).json({error: result.error});
+    res.sendStatus(result.status);
   });
   router.post('/rules/preview', async (req, res) => {
     const {accountId, phrase} = req.body || {};
     if (typeof accountId !== 'string' || typeof phrase !== 'string' ||
         !phrase.trim() || phrase.length > 1000) return res.sendStatus(400);
     const rules = await req.db.prepare(
-      'SELECT id, keyword, reply FROM customer_rules WHERE customer_id=? AND account_id=? AND enabled=1 ORDER BY id'
+      `SELECT r.id, r.keyword, r.reply, b.buttons, b.require_follow FROM customer_rules r LEFT JOIN rule_message_options b ON b.rule_id=r.id
+       WHERE r.customer_id=? AND r.account_id=? AND r.enabled=1 ORDER BY r.id`
     ).all(req.customer.id, accountId);
     const {findMatchingRule} = require('../keyword-match');
     const rule = findMatchingRule(rules, phrase);
-    res.json({matches: rule ? [rule] : []});
+    if (!rule) return res.json({matches: []});
+    const {require_follow, ...preview} = rule;
+    res.json({matches: [{...preview, buttons: parseButtons(rule.buttons), requireFollow: Boolean(require_follow)}]});
   });
   router.delete('/rules/:id', async (req, res) => {
     const result = await req.db.prepare('DELETE FROM customer_rules WHERE id=? AND customer_id=?').run(req.params.id, req.customer.id);
     res.sendStatus(result.changes ? 204 : 404);
   });
   router.use((_req, res) => res.sendStatus(404));
-  router.use((_error, _req, res, _next) => res.sendStatus(400));
+  router.use((error, _req, res, _next) => res.sendStatus(error.status === 413 ? 413 : 400));
+  app.get('/automation-files/:id', async (req, res) => {
+    if (!validFileId(req.params.id)) return res.sendStatus(404);
+    const db = getStore().db;
+    await initializeCustomers(db);
+    const file = await db.prepare(`SELECT f.filename,f.content FROM rule_message_files f
+      JOIN customer_rules r ON r.id=f.rule_id WHERE f.id=?`).get(req.params.id);
+    return sendPdf(res, file);
+  });
   app.use('/api/customer', router);
   app.get('/app', (_req, res) => res.sendFile(require('node:path').join(__dirname, '..', 'dashboard.html')));
 }

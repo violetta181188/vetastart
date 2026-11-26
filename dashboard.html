@@ -17,6 +17,16 @@ body:has(#cabinet:not([hidden])){max-width:1200px}
 dialog{background:#211b36;color:inherit;border:1px solid #69548c;border-radius:16px;width:min(480px,calc(100% - 48px));padding:20px}
 dialog::backdrop{background:#090610b8}
 .password-field{position:relative}.password-field input{padding-inline-end:52px}.password-toggle{position:absolute;inset-inline-end:3px;top:50%;transform:translateY(-50%);display:grid;place-items:center;margin:0;width:44px;height:40px;background:transparent;color:#c7b7ff;border:0}.password-toggle:focus-visible{outline:2px solid currentColor}.password-toggle[aria-pressed="false"] .eye-slash{display:none}
+fieldset{border:1px solid #4c3b6a;border-radius:12px;margin:1rem 0;padding:12px 16px 16px;min-inline-size:0}
+fieldset legend{padding-inline:6px;font-weight:650}
+.button-option{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,145px) minmax(0,1.4fr) auto;gap:10px;align-items:start;margin:12px 0}
+.button-option label,.button-option button{margin:0}
+.button-option small{display:block;overflow-wrap:anywhere;margin-top:4px}
+.reply-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.reply-links a,.secondary-button{background:#33274d;color:#eee5ff;border:1px solid #69548c;border-radius:9px;padding:6px 12px}
+.reply-links a{text-decoration:none}
+.reply-links a:hover{text-decoration:underline}
+@media(max-width:650px){.button-option{grid-template-columns:1fr}}
 </style>
 <header><a href="/">VetaStart</a><h1>Ваш кабинет</h1></header>
 <p id="status" role="status" aria-live="polite"></p>
@@ -38,9 +48,15 @@ dialog::backdrop{background:#090610b8}
 <label>Аккаунт<select name="accountId" id="account-select" required></select></label>
 <label>Кодовое слово<input name="keyword" maxlength="100" placeholder="ГАЙД" required></label>
 <label>Ответ<textarea name="reply" maxlength="1000" placeholder="Спасибо! Вот ссылка на материал…" required></textarea></label>
+<fieldset><legend>Кнопки в Direct</legend>
+<small>До трёх кнопок. Каждая открывает сайт, Telegram или загруженный PDF до 2 МБ. PDF доступен всем, у кого есть ссылка.</small>
+<div id="reply-buttons"></div>
+<button type="button" id="add-reply-button" class="secondary-button">+ Добавить кнопку</button></fieldset>
+<label><input name="requireFollow" type="checkbox"> Проверять подписку на Instagram</label>
+<small>Материалы получат подписчики. Остальным бот предложит подписаться и написать кодовое слово ещё раз.</small>
 <label><input name="enabled" type="checkbox"> Включить сценарий</label>
 <p><small>Поддерживаются входящие сообщения Direct. Отправка требует отдельно настроенного обработчика; создание сценария не подтверждает запуск Instagram-интеграции.</small></p>
-<button>Сохранить сценарий</button><button type="button" id="cancel-edit">Отмена</button></form></section>
+<button id="save-rule">Сохранить сценарий</button><button type="button" id="cancel-edit">Отмена</button><p id="rule-status" role="status"></p></form></section>
 <section><h2>Автоматизации</h2>
 <div class="toolbar">
 <button id="new-rule">Новая автоматизация</button><button id="preview-open">Проверить фразу</button>
@@ -52,7 +68,7 @@ dialog::backdrop{background:#090610b8}
 <form id="preview-form"><label>Сообщение Direct<input name="phrase" maxlength="1000" required></label>
 <button>Проверить</button><button type="button" id="preview-close">Закрыть</button></form>
 <p><small>Для слов от четырёх букв учитывается одна опечатка.</small></p>
-<p id="preview-result" role="status"></p></dialog>
+<p id="preview-result" role="status"></p><div id="preview-links"></div></dialog>
 <section id="legacy-section" hidden><h2>Черновики прежнего кабинета</h2><p>Они сохранены для просмотра. Для автоматизации создайте сценарий после подключения Instagram.</p><div id="legacy"></div></section>
 <section><h2>Последние ответы</h2><button id="refresh">Обновить статусы</button><div id="activity"></div></section>
 <section><h2>Тариф и оплата</h2><p id="billing-status"></p><div id="plans"></div><h3>Ваши счета</h3><div id="invoices"></div>
@@ -77,6 +93,9 @@ async function api(path, options = {}) {
   const body = await response.json().catch(()=>null);
   if(response.status===400&&['verify-email','reset-password'].includes(path))throw new Error('Ссылка недействительна или срок её действия закончился. Запросите новое письмо.');
   if(body?.error==='email_verification_required')throw new Error('Сначала подтвердите email. При необходимости запросите новое письмо ниже.');
+  if(body?.error==='invalid_buttons')throw new Error('Проверьте названия кнопок, ссылки HTTPS и прикреплённые PDF. Текст ответа с кнопками может содержать до 640 символов.');
+  if(body?.error==='button_storage_limit')throw new Error('Достигнут общий лимит PDF для этого сценария.');
+  if(response.status===413)throw new Error('Размер вложений превышает допустимый.');
   if(body?.error==='rule_limit_reached') throw new Error('Достигнут лимит сценариев вашего тарифа. Удалите ненужный сценарий.');
   throw new Error(({401:'Проверьте email и пароль или войдите снова.',402:'Срок доступа закончился. Платежи пока не подключены — обратитесь к владельцу сервиса.',403:'Действие недоступно. Проверьте подключение аккаунта и доступ к регистрации.',429:'Слишком много попыток. Попробуйте через 15 минут.',409:'Не удалось создать аккаунт. Попробуйте войти.'})[response.status] || 'Не удалось выполнить действие. Попробуйте позже.');
  }
@@ -86,14 +105,99 @@ let rules = [];
 let editing = null;
 let canActivate = false;
 const rulePath = id => 'rules/' + encodeURIComponent(id);
+const replyButtons = el('reply-buttons');
+const pdfPath = id => '/automation-files/' + encodeURIComponent(id);
+function updateButtonLimits() {
+ const count = replyButtons.children.length;
+ el('add-reply-button').disabled = count >= 3;
+ el('rule').elements.reply.maxLength = count ? 640 : 1000;
+}
+function addReplyButton(saved = {}) {
+ const row = document.createElement('div');
+ row.className = 'button-option';
+ row.innerHTML = `
+  <label>Название кнопки<input data-field="title" maxlength="20" required></label>
+  <label>Открывает<select data-field="type"><option value="url">Ссылку</option><option value="pdf">PDF</option></select></label>
+  <div>
+   <label>Адрес HTTPS<input data-field="url" type="url" maxlength="2000" placeholder="https://"></label>
+   <label>Загрузить PDF<input data-field="pdf" type="file" accept=".pdf,application/pdf"><small data-field="file-link"></small></label>
+  </div>
+  <button type="button" class="secondary-button" aria-label="Удалить кнопку">Убрать</button>`;
+ const field = name => row.querySelector('[data-field="' + name + '"]');
+ const title = field('title'), type = field('type'), url = field('url'), pdf = field('pdf');
+ title.value = saved.title ?? '';
+ type.value = saved.type ?? 'url';
+ url.value = saved.url ?? '';
+ if (saved.fileId) {
+  row.dataset.fileId = saved.fileId;
+  const existing = document.createElement('a');
+  existing.href = pdfPath(saved.fileId);
+  existing.textContent = 'Открыть прикреплённый PDF';
+  existing.target = '_blank';
+  existing.rel = 'noopener noreferrer';
+  field('file-link').append(existing);
+ }
+ function updateType() {
+  const isPdf = type.value === 'pdf';
+  url.disabled = isPdf;
+  url.required = !isPdf;
+  url.parentElement.hidden = isPdf;
+  pdf.disabled = !isPdf;
+  pdf.required = isPdf && !row.dataset.fileId;
+  pdf.parentElement.hidden = !isPdf;
+ }
+ type.onchange = updateType;
+ row.querySelector('button').onclick = () => { row.remove(); updateButtonLimits(); };
+ replyButtons.append(row);
+ updateType();
+ updateButtonLimits();
+ return title;
+}
+async function readReplyButtons() {
+ return Promise.all([...replyButtons.children].map(async row => {
+  const field = name => row.querySelector('[data-field="' + name + '"]');
+  const title = field('title').value.trim();
+  if (field('type').value === 'url') return {type:'url', title, url:field('url').value.trim()};
+  const file = field('pdf').files[0];
+  if (!file) return {type:'pdf', title, fileId:row.dataset.fileId};
+  if (file.size > 2 * 1024 * 1024) throw new Error('Размер PDF должен быть не больше 2 МБ.');
+  const data = await new Promise((resolve, reject) => {
+   const reader = new FileReader();
+   reader.onload = () => resolve(reader.result.split(',', 2)[1]);
+   reader.onerror = () => reject(new Error('Не удалось прочитать PDF.'));
+   reader.readAsDataURL(file);
+  });
+  return {type:'pdf', title, data, filename:file.name};
+ }));
+}
+function renderReplyLinks(buttons = []) {
+ const links = document.createElement('div');
+ links.className = 'reply-links';
+ for (const button of buttons) {
+  const link = document.createElement('a');
+  link.href = button.type === 'pdf' ? pdfPath(button.fileId) : button.url;
+  link.textContent = button.title;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  links.append(link);
+ }
+ return links;
+}
+el('add-reply-button').onclick = () => addReplyButton().focus();
+
 function openEditor(rule) {
  const form = el('rule');
  form.reset();
+ replyButtons.replaceChildren();
+ el('rule-status').textContent = '';
+ for (const button of rule?.buttons ?? []) addReplyButton(button);
+ updateButtonLimits();
  editing = rule?.id ?? null;
  form.elements.accountId.value = rule?.account_id ?? el('account-filter').value;
  form.elements.accountId.disabled = Boolean(rule);
  form.elements.keyword.value = rule?.keyword ?? '';
  form.elements.reply.value = rule?.reply ?? '';
+ form.elements.requireFollow.checked = Boolean(rule?.requireFollow);
  form.elements.enabled.checked = Boolean(rule?.enabled);
  el('editor-title').textContent = rule ? 'Изменить автоматизацию' : 'Новая автоматизация';
  el('editor').hidden = false;
@@ -116,7 +220,7 @@ function renderRules() {
   const reply = document.createElement('p');
   reply.textContent = rule.reply;
   const channel = document.createElement('small');
-  channel.textContent = 'Direct · целое слово и опечатки';
+  channel.textContent = 'Direct · целое слово и опечатки' + (rule.requireFollow ? ' · проверка подписки' : '');
   const metrics = document.createElement('div');
   metrics.className = 'metrics';
   for (const value of [
@@ -156,7 +260,9 @@ function renderRules() {
    await load();
   });
   actions.append(toggle,edit,remove);
-  card.append(heading,channel,reply,metrics,actions);
+  card.append(heading,channel,reply);
+  if (rule.buttons?.length) card.append(renderReplyLinks(rule.buttons));
+  card.append(metrics,actions);
   list.append(card);
  }
 }
@@ -261,6 +367,7 @@ el('rule-filter').onchange = renderRules;
 el('preview-open').onclick = () => {
  el('preview-form').reset();
  el('preview-result').textContent = '';
+ el('preview-links').replaceChildren();
  el('preview').showModal();
 };
 el('preview-close').onclick = () => el('preview').close();
@@ -271,21 +378,45 @@ el('preview-form').onsubmit = event => {
   const result = await api('rules/preview',{method:'POST',body:JSON.stringify({
    accountId:el('account-filter').value,phrase:data.get('phrase')
   })});
-  el('preview-result').textContent = result.matches.length
-   ? result.matches.map(rule => rule.keyword + ': ' + rule.reply).join(' · ')
-   : 'Нет включённых сценариев для этой фразы.';
+  const rule = result.matches[0];
+  el('preview-result').textContent = rule ? rule.keyword + ': ' + rule.reply : 'Нет включённых сценариев для этой фразы.';
+  el('preview-links').replaceChildren(...(rule?.buttons?.length ? [renderReplyLinks(rule.buttons)] : []));
+  if (rule?.requireFollow) {
+   const note = document.createElement('small');
+   note.textContent = 'Этот ответ доступен подписчикам. Статус подписки проверяется при отправке в Direct.';
+   el('preview-links').append(note);
+  }
  });
 };
-el('rule').onsubmit = event => { event.preventDefault(); run(async () => {
- const data = new FormData(event.target);
- await api(editing ? rulePath(editing) : 'rules',{
-  method:editing ? 'PATCH' : 'POST',
-  body:JSON.stringify({accountId:data.get('accountId'),keyword:data.get('keyword'),reply:data.get('reply'),enabled:data.has('enabled')})
- });
- el('cancel-edit').click();
- await load();
- message('Сценарий сохранён.');
-}); };
+el('rule').onsubmit = async event => {
+ event.preventDefault();
+ const data = new FormData(event.currentTarget);
+ const feedback = el('rule-status'), save = el('save-rule');
+ const editId = editing;
+ save.disabled = true;
+ el('cancel-edit').disabled = true;
+ feedback.textContent = 'Сохраняем сценарий…';
+ try {
+  const buttons = await readReplyButtons();
+  if (buttons.length && data.get('reply').trim().length > 640) {
+   throw new Error('Сократите текст ответа с кнопками до 640 символов.');
+  }
+  await api(editId ? rulePath(editId) : 'rules', {
+   method:editId ? 'PATCH' : 'POST',
+   signal:AbortSignal.timeout(45000),
+   body:JSON.stringify({accountId:data.get('accountId'),keyword:data.get('keyword'),reply:data.get('reply'),enabled:data.has('enabled'),requireFollow:data.has('requireFollow'),buttons})
+  });
+  editing = null;
+  el('editor').hidden = true;
+  await load();
+  message('Сценарий сохранён.');
+ } catch (error) {
+  feedback.textContent = error.message;
+ } finally {
+  save.disabled = false;
+  el('cancel-edit').disabled = false;
+ }
+};
 el('connect').onclick = () => run(async () => {
  const response = await fetch('/auth/instagram/start',{method:'POST'});
  if(!response.ok) throw new Error('Подключение Instagram ещё не настроено.');

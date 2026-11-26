@@ -120,3 +120,106 @@ test('billing checkout requires customer session and provider setup; invoices re
  assert.equal((await (await request('/api/customer/billing',{cookie:first})).json()).invoices.length,1);
  assert.equal((await (await request('/api/customer/billing',{cookie:second})).json()).invoices.length,0);
 });
+
+test('Direct rules persist three buttons, preview a PDF and send a Meta template', async t => {
+ const {store, env, request, signup} = await setup(t);
+ const owner = await signup('buttons@example.test');
+ const other = await signup('other@example.test');
+ bindAccount(store.db, '789', store.db.prepare('SELECT id FROM customers WHERE email=?').get('buttons@example.test').id);
+ const pdf = Buffer.from('%PDF-1.4\n%%EOF\n');
+ const rule = {
+  accountId: '789', keyword: 'гайд', reply: 'Привет! Что хотите выбрать?', enabled: true,
+  buttons: [
+   {type: 'pdf', title: 'Промпт', data: pdf.toString('base64'), filename: 'Промпт.pdf'},
+   {type: 'url', title: 'Курс', url: 'https://vetastart.ru/'},
+   {type: 'url', title: 'Консультация', url: 'https://t.me/violettaproekti'}
+  ]
+ };
+ const saved = await request('/api/customer/rules', {method:'POST', cookie:owner, body:rule});
+ assert.equal(saved.status, 201, await saved.clone().text());
+ const {id} = await saved.json();
+ const preview = await request('/api/customer/rules/preview', {
+  method: 'POST', cookie: owner, body: {accountId:'789', phrase:'хочу гаайд'}
+ });
+ assert.equal(preview.status, 200);
+ const [match] = (await preview.json()).matches;
+ assert.equal(match.id, id);
+ assert.deepEqual(match.buttons.map(button => button.title), ['Промпт','Курс','Консультация']);
+ assert.equal(match.buttons[0].data, undefined);
+
+ const path = '/automation-files/' + match.buttons[0].fileId;
+ const downloaded = await request(path);
+ assert.equal(downloaded.status, 200);
+ assert.match(downloaded.headers.get('content-type'), /^application\/pdf/);
+ assert.match(downloaded.headers.get('content-disposition'), /^attachment/);
+ assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), pdf);
+ const edit = await request('/api/customer/rules/' + id, {
+  method:'PATCH', cookie:other, body:{...rule, buttons:match.buttons}
+ });
+ assert.equal(edit.status, 404);
+ const invalid = await request('/api/customer/rules/' + id, {
+  method:'PATCH', cookie:owner, body:{...rule, buttons:[{type:'url', title:'Ссылка', url:'javascript:alert(1)'}]}
+ });
+ assert.equal(invalid.status, 400);
+
+ const event = {entry:[{id:'789', messaging:[{timestamp:Date.now(), sender:{id:'123'},
+  recipient:{id:'789'}, message:{mid:'buttons-msg', text:'гаайд'}}]}]};
+ store.receive(Buffer.from(JSON.stringify(event)), event);
+ assert.equal(store.process(customerRules(store.db)).drafts, 1);
+ const outbound = [];
+ const {sendDrafts} = require('../sender');
+ const counts = await sendDrafts(store, {
+  env:{...env,VETASTART_SEND_ENABLED:'true',INSTAGRAM_ACCESS_TOKEN:'fixture-token',INSTAGRAM_ACCOUNT_ID:'789'},
+  fetchImpl:async (_url, options) => {
+   outbound.push(JSON.parse(options.body));
+   return Response.json({message_id:'fixture-message'});
+  }
+ });
+ assert.equal(counts.sent, 1);
+ const template = outbound[0].message.attachment.payload;
+ assert.equal(template.template_type, 'button');
+ assert.equal(template.text, rule.reply);
+ assert.deepEqual(template.buttons, [
+  {type:'web_url',title:'Промпт',url:env.VETASTART_PUBLIC_ORIGIN + path},
+  {type:'web_url',title:'Курс',url:'https://vetastart.ru/'},
+  {type:'web_url',title:'Консультация',url:'https://t.me/violettaproekti'}
+ ]);
+ const gate = await request('/api/customer/rules/' + id, {
+  method:'PATCH', cookie:owner, body:{enabled:true, requireFollow:true}
+ });
+ assert.equal(gate.status, 204);
+ const gatedPreview = await request('/api/customer/rules/preview', {
+  method:'POST', cookie:owner, body:{accountId:'789', phrase:'гайд'}
+ });
+ const [gatedRule] = (await gatedPreview.json()).matches;
+ assert.equal(gatedRule.requireFollow, true);
+ assert.deepEqual(gatedRule.buttons, match.buttons);
+ const senderOptions = {
+  env:{...env,VETASTART_SEND_ENABLED:'true',INSTAGRAM_ACCESS_TOKEN:'fixture-token',INSTAGRAM_ACCOUNT_ID:'789'}
+ };
+ for (const [index, follow] of [false,true,null].entries()) {
+  event.entry[0].messaging[0].message.mid = 'gated-' + index;
+  store.receive(Buffer.from(JSON.stringify(event)), event);
+  assert.equal(store.process(customerRules(store.db)).drafts, 1);
+  const requests = [];
+  const result = await sendDrafts(store, {...senderOptions, fetchImpl:async (url, options) => {
+   requests.push({url, options});
+   if (options.method === 'GET') {
+    return follow === null ? new Response('',{status:503}) : Response.json({is_user_follow_business:follow});
+   }
+   return Response.json({message_id:'gated-fixture'});
+  }});
+  assert.equal(result.sent, 1);
+  assert.equal(requests.length, 2);
+  assert.match(requests[0].url, /\/123\?fields=is_user_follow_business$/);
+  const sent = JSON.parse(requests[1].options.body).message;
+  if (follow === true) {
+   assert.deepEqual(sent.attachment.payload.buttons, template.buttons);
+  } else {
+   assert.equal(sent.attachment, undefined);
+   assert.match(sent.text, follow === false ? /подпишитесь/ : /не удалось проверить/);
+  }
+ }
+ assert.equal((await request('/api/customer/rules/' + id, {method:'DELETE',cookie:owner})).status, 204);
+ assert.equal((await request(path)).status, 404);
+});
