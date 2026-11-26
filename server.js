@@ -31,7 +31,7 @@ app.get('/health/ready',(_req,res)=>{
     res.set('Cache-Control','no-store').json({status:'ready',externalServicesVerified:false});
   }catch{res.status(503).json({status:'unavailable'});}
 });
-installCustomers(app, { getStore, env, now, sendMail });
+installCustomers(app, { getStore, env, now, sendMail, fetchImpl });
 installRobokassa(app, { getStore, env, now });
 installInstagramAuth(app, { getStore, env, fetchImpl, now });
 

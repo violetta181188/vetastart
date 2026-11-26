@@ -61,7 +61,8 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
     getStore,
     env,
     now,
-    sendMail
+    sendMail,
+    fetchImpl
   });
   installRobokassa(app, {
     getStore,

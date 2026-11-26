@@ -1,3 +1,4 @@
+const {createAccountLabels} = require('./instagram-account-labels');
 const {buttonTables, parseButtons, validateButtons, buttonFileError, validFileId, sendPdf} = require('./message-buttons');
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
@@ -65,7 +66,7 @@ function customerRules(db) {
   }));
 }
 
-function installCustomers(app, { getStore, env, now = Date.now, sendMail }) {
+function installCustomers(app, { getStore, env, now = Date.now, sendMail, fetchImpl = fetch }) {
   const recovery=recoveryService({env,now,sendMail});
   const express = require('express');
   const router = express.Router();
@@ -155,7 +156,18 @@ function installCustomers(app, { getStore, env, now = Date.now, sendMail }) {
     if (token) req.db.prepare('DELETE FROM customer_sessions WHERE session_hash=?').run(hash(token));
     res.clearCookie(cookieName, { path: '/' }); res.json({ ok: true });
   });
-  router.get('/accounts', (req, res) => res.json(req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=?').all(req.customer.id)));
+  const accountLabels = createAccountLabels({
+    getToken: id => require('./instagram-auth').connectedToken(getStore(), id, env, now()),
+    env, fetchImpl, now
+  });
+  router.get('/accounts', async (req, res) => {
+    try {
+      const accounts = req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=? ORDER BY account_id').all(req.customer.id);
+      res.json(await accountLabels(accounts));
+    } catch {
+      res.sendStatus(503);
+    }
+  });
   router.get('/legacy-projects',(_req,res)=>res.json([]));
   router.get('/rules', (req, res) => {
     const rows = req.db.prepare(`SELECT r.id,r.account_id,r.keyword,r.reply,r.enabled,b.buttons AS message_buttons,b.require_follow,

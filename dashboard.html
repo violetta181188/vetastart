@@ -274,11 +274,13 @@ async function load() {
    ' · попытки ответов: '+sub.usedMessages+(sub.limits.messages === null ? ' (без лимита)' : ' из '+sub.limits.messages)+
    ' · аккаунты: до '+sub.limits.accounts+' · сценарии: до '+sub.limits.rules : 'Активного доступа нет. Данные и сценарии сохранены.';
  const accounts = await api('accounts');
- el('accounts').textContent = accounts.length ? 'Подключённые аккаунты: ' + accounts.map(a=>a.account_id).join(', ') : 'Аккаунтов пока нет.';
+ const nameForAccount = account => account.username ? '@' + account.username : account.account_id;
+ const accountNames = new Map(accounts.map(account => [account.account_id, nameForAccount(account)]));
+ el('accounts').textContent = accounts.length ? 'Подключённые аккаунты: ' + accounts.map(nameForAccount).join(', ') : 'Аккаунтов пока нет.';
  const selected = el('account-filter').value;
  for (const id of ['account-select','account-filter']) {
   const select = el(id);
-  select.replaceChildren(...accounts.map(account => new Option(account.account_id,account.account_id)));
+  select.replaceChildren(...accounts.map(account => new Option(nameForAccount(account),account.account_id)));
  }
  if (accounts.some(account => account.account_id === selected)) el('account-filter').value = selected;
  canActivate = sub.active;
@@ -343,7 +345,7 @@ async function load() {
  const activity = await api('activity'); el('activity').replaceChildren();
  if(!activity.length) el('activity').textContent='Ответов пока нет.';
  for(const item of activity) {
-  const row=document.createElement('p'); row.textContent=item.account_id+' · '+(statuses[item.status]||'Неизвестный статус')+' · '+new Date(item.created_at).toLocaleString();
+  const row=document.createElement('p'); row.textContent=(accountNames.get(item.account_id) ?? item.account_id)+' · '+(statuses[item.status]||'Неизвестный статус')+' · '+new Date(item.created_at).toLocaleString();
   el('activity').append(row);
  }
 

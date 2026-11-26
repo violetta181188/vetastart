@@ -1,3 +1,4 @@
+const {createAccountLabels} = require('../instagram-account-labels');
 const {buttonTables, parseButtons, validateButtons, buttonFileError, validFileId, sendPdf} = require('../message-buttons');
 const {safeRouter} = require('./safe-router');
 const crypto = require('node:crypto');
@@ -66,7 +67,7 @@ async function customerRules(db) {
     enabled: !!r.enabled
   }));
 }
-function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
+function installCustomers(app, {getStore, env, now = Date.now, sendMail, fetchImpl = fetch}) {
   const recovery = recoveryService({
     env,
     now,
@@ -214,7 +215,18 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
       ok: true
     });
   });
-  router.get('/accounts', async (req, res) => res.json(await req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=?').all(req.customer.id)));
+  const accountLabels = createAccountLabels({
+    getToken: id => require('./instagram-auth').connectedToken(getStore(), id, env, now()),
+    env, fetchImpl, now
+  });
+  router.get('/accounts', async (req, res) => {
+    try {
+      const accounts = await req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=? ORDER BY account_id').all(req.customer.id);
+      res.json(await accountLabels(accounts));
+    } catch {
+      res.sendStatus(503);
+    }
+  });
   router.get('/legacy-projects',async(req,res)=>res.json(await require('./legacy').legacyProjects(req.db,req.customer.email)));
   router.get('/rules', async (req, res) => {
     const rows = await req.db.prepare(`SELECT r.id,r.account_id,r.keyword,r.reply,r.enabled,b.buttons AS message_buttons,b.require_follow,

@@ -56,6 +56,9 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   const oauth=start.headers.get('set-cookie').split(';')[0];
   const callback=await request('/auth/instagram/callback?code=fixture-code&state='+state,{cookie:first+'; '+oauth});
   assert.equal(callback.status,303,await callback.text());
+  assert.deepEqual(await (await request('/api/customer/accounts',{cookie:first})).json(),
+   [{account_id:'789',username:'fixture_account'}]);
+  assert.deepEqual(await (await request('/api/customer/accounts',{cookie:second})).json(),[]);
   const denied=await request('/api/admin/instagram/status',{cookie:first});
   assert.equal(denied.status,401);
   const operational=await request('/api/admin/instagram/status',{headers:{Authorization:'Bearer '+env.VETASTART_ADMIN_TOKEN}});
