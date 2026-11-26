@@ -1,0 +1,133 @@
+const {safeRouter} = require('./safe-router');
+const express = require("express");
+const path = require("path");
+const crypto = require("crypto");
+const {installInstagramAuth} = require("./instagram-auth");
+const {installCustomers} = require("./customers");
+const {installRobokassa} = require("./robokassa");
+const {installAdminStatus} = require('../admin-status');
+const {installAdminWebhook} = require('../admin-webhook');
+const {installInboxProbe} = require('../admin-inbox-probe');
+const {installOperator} = require('../operator-rules');
+const {installTestReplies} = require('../operator-test-reply');
+const {inspectConfiguration} = require('../deployment-check');
+const databaseReady = store => store.db.probe();
+function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now, sendMail} = {}) {
+  if (!store) throw new Error("Initialized PostgreSQL store required");
+  const app = safeRouter(express());
+  app.disable("x-powered-by");
+  app.use((_req,res,next)=>{res.set({'X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});next();});
+  const activeStore = store;
+  app.locals.close = async () => await activeStore?.close();
+  const getStore = () => activeStore;
+  app.locals.getStore = getStore;
+  const webhookTraffic={since:new Date().toISOString(),received:0,accepted:0,signatureRejected:0,payloadRejected:0,persistenceFailed:0};
+  installAdminStatus(app, {getStore, env, fetchImpl, webhookTraffic});
+  installAdminWebhook(app, {env, fetchImpl});
+  installInboxProbe(app, {getStore, env, fetchImpl, now});
+  app.use((req, res, next) => {
+    const send = res.send;
+    res.send = function (...args) {
+      if (store.db.afterCommit(() => send.apply(this, args))) return this;
+      return send.apply(this, args);
+    };
+    next();
+  });
+  installOperator(app, {getStore, env});
+  installTestReplies(app, {getStore, env, fetchImpl, now});
+  app.get('/health/live', (_req, res) => res.set('Cache-Control', 'no-store').json({
+    status: 'running'
+  }));
+  app.get('/health/ready', async (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      const report = inspectConfiguration(env, {
+        profile: env.VETASTART_READINESS_PROFILE || 'runtime'
+      });
+      if (!report.ok || !await databaseReady(getStore())) return res.status(503).json({
+        status: 'unavailable'
+      });
+      res.set('Cache-Control', 'no-store').json({
+        status: 'ready',
+        externalServicesVerified: false
+      });
+    } catch {
+      res.status(503).json({
+        status: 'unavailable'
+      });
+    }
+  });
+  installCustomers(app, {
+    getStore,
+    env,
+    now,
+    sendMail
+  });
+  installRobokassa(app, {
+    getStore,
+    env,
+    now
+  });
+  installInstagramAuth(app, {
+    getStore,
+    env,
+    fetchImpl,
+    now
+  });
+  function equalSecret(a, b) {
+    const left = Buffer.from(a);
+    const right = Buffer.from(b);
+    return left.length === right.length && crypto.timingSafeEqual(left, right);
+  }
+  app.get("/webhooks/instagram", (req, res) => {
+    const token = env.INSTAGRAM_VERIFY_TOKEN;
+    if (!token) return res.sendStatus(503);
+    const mode = req.query["hub.mode"];
+    const supplied = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+    if (mode !== "subscribe" || typeof supplied !== "string" || typeof challenge !== "string" || !challenge || !equalSecret(supplied, token)) return res.sendStatus(403);
+    return res.status(200).type("text/plain").send(challenge);
+  });
+  app.post("/webhooks/instagram", (_req,_res,next)=>{webhookTraffic.received++;next();}, express.raw({
+    type: "application/json",
+    limit: "1mb"
+  }), async (req, res) => {
+    const secret = env.META_APP_SECRET;
+    if (!secret) return res.sendStatus(503);
+    if (!Buffer.isBuffer(req.body)) {webhookTraffic.payloadRejected++;return res.sendStatus(415);}
+    const signature = req.get("x-hub-signature-256") || "";
+    const expected = "sha256=" + crypto.createHmac("sha256", secret).update(req.body).digest("hex");
+    if (!equalSecret(signature, expected)) {webhookTraffic.signatureRejected++;return res.sendStatus(403);}
+    let event;
+    try {
+      event = JSON.parse(req.body.toString("utf8"));
+    } catch {
+      webhookTraffic.payloadRejected++;return res.sendStatus(400);
+    }
+    if (!event || event.object !== "instagram" || !Array.isArray(event.entry)) {
+      webhookTraffic.payloadRejected++;
+      return res.sendStatus(400);
+    }
+    try {
+      await activeStore.receive(req.body, event);
+    } catch {
+      webhookTraffic.persistenceFailed++;console.error("Instagram webhook persistence failed");
+      return res.sendStatus(503);
+    }
+    webhookTraffic.accepted++;return res.status(200).send("EVENT_RECEIVED");
+  });
+  app.get("/", (req, res) => res.sendFile(path.join(__dirname, "..", "index.html")));
+  app.get('/privacy',(_req,res)=>res.sendFile(path.join(__dirname,'..','privacy.html')));
+  app.get('/data-deletion',(_req,res)=>res.sendFile(path.join(__dirname,'..','data-deletion.html')));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "index.html"));
+  });
+  app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    res.sendStatus(503);
+  });
+  return app;
+}
+module.exports = {
+  createApp
+};

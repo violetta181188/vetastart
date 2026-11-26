@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Кабинет — VetaStart</title>
+<style>
+body{background:#100d1c;color:#f8f7ff;font:17px/1.6 system-ui;margin:auto;max-width:850px;padding:24px}section,article{background:#211b36;border:1px solid #4c3b6a;border-radius:16px;padding:24px;margin:20px 0}label{display:block;margin-top:16px}input,textarea,select,button{box-sizing:border-box;font:inherit;border:1px solid #69548c;border-radius:9px;padding:10px;max-width:100%}input:not([type=checkbox]),textarea,select{display:block;width:100%;background:#100d1c;color:white}button{background:#9878ff;color:#100d1c;cursor:pointer;margin:12px 6px 0 0}a{color:#c7b7ff}small{color:#c8bedb}#status{min-height:2em}button:disabled{opacity:.6}textarea{min-height:100px}[hidden]{display:none!important}
+
+#cabinet{max-width:1200px;margin:auto}
+body:has(#cabinet:not([hidden])){max-width:1200px}
+.toolbar,.card-actions,.metrics{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.toolbar label{margin:0;flex:1;min-width:150px}
+.toolbar button,.card-actions button{margin:0}
+#rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+#rules article{margin:0;padding:18px;background:#171226;overflow-wrap:anywhere}
+.metrics{margin:16px 0;padding-top:12px;border-top:1px solid #4c3b6a}
+.metrics small{flex:1;min-width:95px}
+dialog{background:#211b36;color:inherit;border:1px solid #69548c;border-radius:16px;width:min(480px,calc(100% - 48px));padding:20px}
+dialog::backdrop{background:#090610b8}
+</style>
+<header><a href="/">VetaStart</a><h1>Ваш кабинет</h1></header>
+<p id="status" role="status" aria-live="polite"></p>
+<section id="auth"><h2>Вход и регистрация</h2>
+<form id="login"><label>Email<input name="email" type="email" autocomplete="username" required></label>
+<label>Пароль — от 12 символов<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="256" required></label>
+<button name="action" value="login">Войти</button><button name="action" value="register">Создать аккаунт</button></form>
+<small>Тестовая версия. Оплата не подключена. Регистрация доступна, только если её включил владелец сервиса.</small></section>
+<section id="recovery"><h2>Доступ к аккаунту</h2>
+<form id="email-action"><label>Email<input name="email" type="email" autocomplete="email" required></label>
+<button name="action" value="request-verification">Отправить подтверждение почты</button>
+<button name="action" value="forgot-password">Забыли пароль?</button></form></section>
+<section id="verify-panel" hidden><h2>Подтверждение почты</h2><p>Нажмите кнопку, чтобы подтвердить адрес из письма.</p><button id="verify">Подтвердить email</button></section>
+<section id="reset-panel" hidden><h2>Новый пароль</h2><form id="reset"><label>От 12 символов<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required></label><button>Сохранить пароль</button></form></section>
+<main id="cabinet" hidden><p id="identity"></p><p id="subscription"></p><button id="logout">Выйти</button>
+<section><h2>Instagram</h2><p>Подключите профессиональный аккаунт через официальную страницу Meta.</p>
+<button id="connect">Подключить Instagram</button><div id="accounts"></div></section>
+<section id="editor" hidden><h2 id="editor-title">Новый сценарий</h2><form id="rule">
+<label>Аккаунт<select name="accountId" id="account-select" required></select></label>
+<label>Кодовое слово<input name="keyword" maxlength="100" placeholder="ГАЙД" required></label>
+<label>Ответ<textarea name="reply" maxlength="1000" placeholder="Спасибо! Вот ссылка на материал…" required></textarea></label>
+<label><input name="enabled" type="checkbox"> Включить сценарий</label>
+<p><small>Поддерживаются входящие сообщения Direct. Отправка требует отдельно настроенного обработчика; создание сценария не подтверждает запуск Instagram-интеграции.</small></p>
+<button>Сохранить сценарий</button><button type="button" id="cancel-edit">Отмена</button></form></section>
+<section><h2>Автоматизации</h2>
+<div class="toolbar">
+<button id="new-rule">Новая автоматизация</button><button id="preview-open">Проверить фразу</button>
+<label>Instagram-аккаунт<select id="account-filter"></select></label>
+<label>Кодовое слово<input id="rule-search" type="search"></label>
+<label>Статус<select id="rule-filter"><option value="">Все</option><option value="on">Включённые</option><option value="off">На паузе</option></select></label>
+</div><div id="rules"></div></section>
+<dialog id="preview"><h2>Проверить фразу</h2>
+<form id="preview-form"><label>Сообщение Direct<input name="phrase" maxlength="1000" required></label>
+<button>Проверить</button><button type="button" id="preview-close">Закрыть</button></form>
+<p id="preview-result" role="status"></p></dialog>
+<section id="legacy-section" hidden><h2>Черновики прежнего кабинета</h2><p>Они сохранены для просмотра. Для автоматизации создайте сценарий после подключения Instagram.</p><div id="legacy"></div></section>
+<section><h2>Последние ответы</h2><button id="refresh">Обновить статусы</button><div id="activity"></div></section>
+<section><h2>Тариф и оплата</h2><p id="billing-status"></p><div id="plans"></div><h3>Ваши счета</h3><div id="invoices"></div>
+<p><small>Оплачивается 30 дней доступа. Автоматических списаний нет. Если текущий период ещё действует, следующий начнётся после него.</small></p></section></main>
+<script>
+const el = id => document.getElementById(id);
+const message = text => { el('status').textContent = text; };
+async function api(path, options = {}) {
+ const response = await fetch('/api/customer/' + path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+ if (!response.ok) {
+  if (response.status === 401) { el('auth').hidden = false; el('cabinet').hidden = true; }
+  const body = await response.json().catch(()=>null);
+  if(response.status===400&&['verify-email','reset-password'].includes(path))throw new Error('Ссылка недействительна или срок её действия закончился. Запросите новое письмо.');
+  if(body?.error==='email_verification_required')throw new Error('Сначала подтвердите email. При необходимости запросите новое письмо ниже.');
+  if(body?.error==='rule_limit_reached') throw new Error('Достигнут лимит сценариев вашего тарифа. Удалите ненужный сценарий.');
+  throw new Error(({401:'Проверьте email и пароль или войдите снова.',402:'Срок доступа закончился. Платежи пока не подключены — обратитесь к владельцу сервиса.',403:'Действие недоступно. Проверьте подключение аккаунта и доступ к регистрации.',429:'Слишком много попыток. Попробуйте через 15 минут.',409:'Не удалось создать аккаунт. Попробуйте войти.'})[response.status] || 'Не удалось выполнить действие. Попробуйте позже.');
+ }
+ return response.status === 204 ? null : response.json();
+}
+let rules = [];
+let editing = null;
+let canActivate = false;
+const rulePath = id => 'rules/' + encodeURIComponent(id);
+function openEditor(rule) {
+ const form = el('rule');
+ form.reset();
+ editing = rule?.id ?? null;
+ form.elements.accountId.value = rule?.account_id ?? el('account-filter').value;
+ form.elements.accountId.disabled = Boolean(rule);
+ form.elements.keyword.value = rule?.keyword ?? '';
+ form.elements.reply.value = rule?.reply ?? '';
+ form.elements.enabled.checked = Boolean(rule?.enabled);
+ el('editor-title').textContent = rule ? 'Изменить автоматизацию' : 'Новая автоматизация';
+ el('editor').hidden = false;
+ form.elements.keyword.focus();
+}
+function renderRules() {
+ const list = el('rules');
+ list.replaceChildren();
+ const account = el('account-filter').value;
+ const query = el('rule-search').value.trim().toLocaleLowerCase('ru');
+ const status = el('rule-filter').value;
+ const filtered = rules.filter(rule => rule.account_id === account &&
+   rule.keyword.toLocaleLowerCase('ru').includes(query) &&
+   (!status || (status === 'on') === Boolean(rule.enabled)));
+ if (!filtered.length) list.textContent = 'Подходящих автоматизаций пока нет.';
+ for (const rule of filtered) {
+  const card = document.createElement('article');
+  const heading = document.createElement('h3');
+  heading.textContent = rule.keyword;
+  const reply = document.createElement('p');
+  reply.textContent = rule.reply;
+  const channel = document.createElement('small');
+  channel.textContent = 'Direct · целое слово';
+  const metrics = document.createElement('div');
+  metrics.className = 'metrics';
+  for (const value of [
+    'Контакты: ' + rule.contacts,
+    'Отправлено контактам: ' + rule.sent_contacts,
+    'Последний запуск: ' + (rule.last_run == null ? '—' : new Date(rule.last_run).toLocaleString('ru-RU'))
+  ]) {
+   const label = document.createElement('small');
+   label.textContent = value;
+   metrics.append(label);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  const toggle = document.createElement('button');
+  toggle.textContent = rule.enabled ? 'Поставить на паузу' : 'Включить';
+  toggle.disabled = !rule.enabled && !canActivate;
+  toggle.onclick = () => run(async () => {
+   toggle.disabled = true;
+   try {
+    await api(rulePath(rule.id), {method:'PATCH',body:JSON.stringify({
+     enabled:!rule.enabled
+    })});
+    rules = await api('rules');
+    if (editing === rule.id) el('editor').hidden = true;
+    renderRules();
+   } finally { toggle.disabled = false; }
+  });
+  const edit = document.createElement('button');
+  edit.textContent = 'Изменить';
+  edit.onclick = () => openEditor(rule);
+  const remove = document.createElement('button');
+  remove.textContent = 'Удалить';
+  remove.onclick = () => run(async () => {
+   if (!window.confirm('Удалить автоматизацию «' + rule.keyword + '»?')) return;
+   await api(rulePath(rule.id), {method:'DELETE'});
+   if (editing === rule.id) el('editor').hidden = true;
+   await load();
+  });
+  actions.append(toggle,edit,remove);
+  card.append(heading,channel,reply,metrics,actions);
+  list.append(card);
+ }
+}
+async function load() {
+ const me = await api('me');
+ el('identity').textContent = me.email; el('auth').hidden = true; el('cabinet').hidden = false;
+ const sub=me.subscription;
+ el('subscription').textContent=sub.active ? sub.title+' · доступ до '+new Date(sub.endAt).toLocaleString()+
+   ' · попытки ответов: '+sub.usedMessages+' из '+sub.limits.messages+
+   ' · аккаунты: до '+sub.limits.accounts+' · сценарии: до '+sub.limits.rules : 'Активного доступа нет. Данные и сценарии сохранены.';
+ const accounts = await api('accounts');
+ el('accounts').textContent = accounts.length ? 'Подключённые аккаунты: ' + accounts.map(a=>a.account_id).join(', ') : 'Аккаунтов пока нет.';
+ const selected = el('account-filter').value;
+ for (const id of ['account-select','account-filter']) {
+  const select = el(id);
+  select.replaceChildren(...accounts.map(account => new Option(account.account_id,account.account_id)));
+ }
+ if (accounts.some(account => account.account_id === selected)) el('account-filter').value = selected;
+ canActivate = sub.active;
+ el('new-rule').disabled = !accounts.length || !canActivate;
+ el('preview-open').disabled = !accounts.length;
+ rules = await api('rules');
+ renderRules();
+ const legacy=await api('legacy-projects');el('legacy-section').hidden=!legacy.length;el('legacy').replaceChildren();
+ for(const project of legacy){
+  const card=document.createElement('article'),heading=document.createElement('strong');heading.textContent=project.name;card.append(heading);
+  for(const scenario of project.scenarios){const p=document.createElement('p');p.textContent=scenario.name+' · '+scenario.keyword+' · '+(scenario.messages||[]).join(' / ');card.append(p);}
+  el('legacy').append(card);
+ }
+ const billing=await api('billing');
+ el('billing-status').textContent=!billing.enabled ? 'Робокасса ещё не подключена. Оплата недоступна.' : billing.isTest ? 'Тестовый режим: платежи не включают платную подписку.' : 'Оплата через Робокассу. Стоимость указана в рублях.';
+ el('plans').replaceChildren();
+ for(const plan of billing.plans) {
+  const card=document.createElement('article');const label=document.createElement('p');
+  label.textContent=plan.title+' — '+(plan.price/100).toLocaleString('ru-RU')+' ₽ / '+plan.days+' дней · аккаунты: '+plan.accounts+' · сценарии: '+plan.rules+' · попытки ответов: '+plan.messages;
+  const button=document.createElement('button');button.textContent=billing.isTest?'Тестовая оплата':'Оплатить 30 дней';button.disabled=!billing.enabled;
+  button.onclick=()=>run(async()=>{button.disabled=true;try{
+   const checkout=await api('billing/checkout',{method:'POST',body:JSON.stringify({planId:plan.id})});
+   const url=new URL(checkout.paymentUrl);
+   if(url.origin!=='https://auth.robokassa.ru'||url.pathname!=='/Merchant/Index.aspx')throw new Error('Некорректный адрес оплаты.');
+   window.location.assign(url.href);
+  }finally{button.disabled=false;}});
+  card.append(label,button);el('plans').append(card);
+ }
+ el('invoices').replaceChildren();
+ if(!billing.invoices.length)el('invoices').textContent='Счетов пока нет.';
+ const invoiceStatuses={pending:'Ожидает оплаты',paid:'Оплата подтверждена',test_paid:'Тестовая оплата подтверждена — платный доступ не выдан'};
+ for(const invoice of billing.invoices){const p=document.createElement('p');p.textContent='Счёт '+invoice.id+' · '+(invoice.amount/100)+' ₽ · '+(invoice.is_test?'Тест · ':'')+(invoiceStatuses[invoice.status]||'Нужна проверка');el('invoices').append(p);}
+ const statuses = {draft:'Ожидает отправки',sending:'Отправляется — при задержке нужна проверка',sent:'Meta подтвердила отправку',failed:'Ошибка отправки',unknown:'Доставка не подтверждена — нужна проверка',blocked:'Отправка заблокирована'};
+ const activity = await api('activity'); el('activity').replaceChildren();
+ if(!activity.length) el('activity').textContent='Ответов пока нет.';
+ for(const item of activity) {
+  const row=document.createElement('p'); row.textContent=item.account_id+' · '+(statuses[item.status]||'Неизвестный статус')+' · '+new Date(item.created_at).toLocaleString();
+  el('activity').append(row);
+ }
+
+}
+async function run(action) { try { await action(); } catch(error) { message(error.message); } }
+el('login').onsubmit = event => { event.preventDefault(); run(async () => {
+ const data = new FormData(event.target); const action = event.submitter.value;
+ const result=await api(action, {method:'POST',body:JSON.stringify({email:data.get('email'),password:data.get('password')})});
+ if(result.verificationRequired){event.target.reset();message('Проверьте почту и подтвердите email. После этого войдите.');return;}
+ event.target.reset(); await load(); message('Вы вошли.');
+}); };
+el('logout').onclick = () => run(async () => { await api('logout',{method:'POST'}); el('auth').hidden=false; el('cabinet').hidden=true; message('Вы вышли.'); });
+el('refresh').onclick = () => run(load);
+el('new-rule').onclick = () => openEditor();
+el('cancel-edit').onclick = () => { el('editor').hidden = true; editing = null; };
+el('account-filter').onchange = () => { el('cancel-edit').click(); renderRules(); };
+el('rule-search').oninput = renderRules;
+el('rule-filter').onchange = renderRules;
+el('preview-open').onclick = () => {
+ el('preview-form').reset();
+ el('preview-result').textContent = '';
+ el('preview').showModal();
+};
+el('preview-close').onclick = () => el('preview').close();
+el('preview-form').onsubmit = event => {
+ event.preventDefault();
+ run(async () => {
+  const data = new FormData(event.target);
+  const result = await api('rules/preview',{method:'POST',body:JSON.stringify({
+   accountId:el('account-filter').value,phrase:data.get('phrase')
+  })});
+  el('preview-result').textContent = result.matches.length
+   ? result.matches.map(rule => rule.keyword + ': ' + rule.reply).join(' · ')
+   : 'Нет включённых сценариев для этой фразы.';
+ });
+};
+el('rule').onsubmit = event => { event.preventDefault(); run(async () => {
+ const data = new FormData(event.target);
+ await api(editing ? rulePath(editing) : 'rules',{
+  method:editing ? 'PATCH' : 'POST',
+  body:JSON.stringify({accountId:data.get('accountId'),keyword:data.get('keyword'),reply:data.get('reply'),enabled:data.has('enabled')})
+ });
+ el('cancel-edit').click();
+ await load();
+ message('Сценарий сохранён.');
+}); };
+el('connect').onclick = () => run(async () => {
+ const response = await fetch('/auth/instagram/start',{method:'POST'});
+ if(!response.ok) throw new Error('Подключение Instagram ещё не настроено.');
+ const url = new URL((await response.json()).authorizationUrl);
+ if(url.origin !== 'https://www.facebook.com' || url.pathname !== '/dialog/oauth') throw new Error('Для кабинета требуется Unified Login.');
+ window.location.assign(url.href);
+});
+el('email-action').onsubmit=event=>{event.preventDefault();run(async()=>{
+ const data=new FormData(event.target);const result=await api(event.submitter.value,{method:'POST',body:JSON.stringify({email:data.get('email')})});
+ message(result.message);event.target.reset();
+});};
+const fragment=new URLSearchParams(window.location.hash.slice(1));
+const verificationToken=fragment.get('verify'),resetToken=fragment.get('reset');
+// Tokens stay in memory only; clear the address bar before any other requests.
+if(window.location.hash)history.replaceState(null,'',window.location.pathname);
+if(verificationToken){el('verify-panel').hidden=false;el('verify').onclick=()=>run(async()=>{
+ await api('verify-email',{method:'POST',body:JSON.stringify({token:verificationToken})});
+ el('verify-panel').hidden=true;message('Email подтверждён. Теперь войдите с вашим паролем.');
+});}
+if(resetToken){el('reset-panel').hidden=false;el('reset').onsubmit=event=>{event.preventDefault();run(async()=>{
+ const data=new FormData(event.target);await api('reset-password',{method:'POST',body:JSON.stringify({token:resetToken,password:data.get('password')})});
+ event.target.reset();el('reset-panel').hidden=true;el('auth').hidden=false;el('cabinet').hidden=true;message('Пароль обновлён. Войдите заново.');
+});};}
+load().catch(()=>{});
+</script></html>

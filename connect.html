@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Подключение Instagram — VetaStart</title>
+<style>
+body{background:#100d1c;color:#f8f7ff;font:18px/1.6 system-ui;max-width:640px;margin:70px auto;padding:24px}input,button{box-sizing:border-box;width:100%;font:inherit;padding:12px;margin:12px 0;border-radius:10px;border:1px solid #69548c}button{background:#9878ff;color:#100d1c;cursor:pointer}a{color:#c7b7ff}#status{min-height:3em}input{background:#211b36;color:white}
+</style>
+<h1>Подключить Instagram</h1>
+<p>Войдите в свой профессиональный аккаунт на официальной странице Instagram и разрешите VetaStart работать с сообщениями.</p>
+<form id="connect">
+<label for="admin">Ключ администратора VetaStart</label>
+<input id="admin" type="password" autocomplete="off" required aria-describedby="hint">
+<p id="hint">Это ключ доступа к настройке VetaStart. Пароль Instagram вводится только на сайте Instagram.</p>
+<button id="submit">Продолжить в Instagram</button>
+</form>
+<p id="status" role="status" aria-live="polite"></p>
+<p>Подключение само по себе не включает автоматическую отправку. При отзыве разрешений в Instagram потребуется повторный вход.</p>
+<a href="/">На главную</a>
+<p><small><a href="/privacy">Конфиденциальность</a> · <a href="/data-deletion">Удаление данных</a></small></p>
+<script>
+document.getElementById('connect').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = document.getElementById('submit');
+  const input = document.getElementById('admin');
+  const status = document.getElementById('status');
+  button.disabled = true;
+  status.textContent = 'Подготавливаем переход…';
+  try {
+    const pending = fetch('/auth/instagram/start', { method: 'POST', headers: { Authorization: 'Bearer ' + input.value } });
+    input.value = '';
+    const response = await pending;
+    if (!response.ok) {
+      status.textContent = response.status === 401 ? 'Проверьте ключ администратора.' : 'Подключение пока недоступно. Требуется настройка приложения Meta.';
+      return;
+    }
+    const data = await response.json();
+    const url = new URL(data.authorizationUrl);
+    const official = (url.origin === 'https://www.instagram.com' && url.pathname === '/oauth/authorize') ||
+      (url.origin === 'https://www.facebook.com' && url.pathname === '/dialog/oauth');
+    if (!official) throw new Error();
+    window.location.assign(url.href);
+  } catch { status.textContent = 'Не удалось подключиться. Попробуйте ещё раз.'; }
+  finally { button.disabled = false; }
+});
+</script>
+</html>

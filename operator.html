@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Панель владельца — VetaStart</title>
+<style>
+body{margin:auto;max-width:880px;padding:24px;background:#100d1c;color:#f8f7ff;font:17px/1.6 system-ui}a{color:#c7b7ff}section,article{background:#211b36;border:1px solid #4c3b6a;padding:24px;border-radius:16px;margin:20px 0}label{display:block;margin:14px 0}input,textarea,select,button{box-sizing:border-box;font:inherit;border:1px solid #69548c;border-radius:9px;padding:10px;max-width:100%}input:not([type=checkbox]),textarea,select{display:block;width:100%;background:#100d1c;color:white}textarea{min-height:110px}button{background:#9878ff;color:#100d1c;cursor:pointer;margin:8px 8px 0 0}button:disabled{opacity:.5;cursor:wait}small{color:#c8bedb}[hidden]{display:none!important}#message{min-height:2em;white-space:pre-wrap}.counter{font-size:1.1em}h1,h2{line-height:1.25}article{overflow-wrap:anywhere}
+</style>
+<header><a href="/">VetaStart</a> · <a href="/app">Кабинет клиента</a><h1>Панель владельца</h1></header>
+<p id="message" role="status" aria-live="polite"></p>
+<section id="entry"><h2>Вход владельца</h2><form id="login">
+<label>Ключ администратора<input name="key" type="password" autocomplete="off" required minlength="32"></label>
+<p><small>Ключ нужен для управления вашим подключением. Он используется только на этой странице и не сохраняется в браузере.</small></p><button>Войти</button></form></section>
+<main id="panel" hidden><button id="refresh">Обновить состояние</button><button id="logout">Выйти</button>
+<section><h2>Подключение Instagram</h2><p id="connection"></p><p id="incoming" class="counter"></p><p id="sending"></p>
+<button id="connect">Подключить Instagram</button><button id="webhook">Проверить webhook Meta</button>
+<p id="polling"></p>
+<p><small>Проверка получения: отправьте «VETASTART ТЕСТ» в Direct подключённого аккаунта с другого аккаунта Instagram, затем обновите состояние.</small></p></section>
+<section><h2>Сценарии владельца</h2><p>Эти сценарии действуют для ваших аккаунтов, подключённых ключом администратора. Аккаунтами клиентов управляют сами клиенты в своём кабинете.</p>
+<form id="rule"><input name="id" type="hidden"><label>Аккаунт Instagram<select name="accountId" required></select></label>
+<label>Ключевое слово или фраза<input name="keyword" maxlength="100" required placeholder="Например: ГАЙД"></label>
+<label>Текст ответа<textarea name="reply" maxlength="1000" required placeholder="Ваш ответ и ссылка на материал"></textarea></label>
+<label><input name="enabled" type="checkbox"> Сценарий включён</label>
+<small>Сохранение сценария не включает отправку сообщений на сервере. Общий статус отправки указан выше.</small><br>
+<button id="save">Сохранить сценарий</button><button type="button" id="cancel">Очистить форму</button></form><div id="rules"></div></section>
+<section><h2>Проверить сценарий без отправки</h2><p>Введите пример входящего сообщения. Проверка не создаёт очередь ответов и никому ничего не отправляет.</p>
+<form id="preview"><label>Аккаунт<select name="accountId" required></select></label><label>Текст сообщения<textarea name="text" maxlength="2000" required></textarea></label><button>Проверить совпадение</button></form><p id="preview-result" role="status"></p></section>
+</main>
+<script>
+const el=id=>document.getElementById(id);let adminKey='',rules=[];
+const errors={400:'Проверьте заполненные поля.',401:'Ключ администратора не принят.',404:'Сценарий уже удалён.',409:'Аккаунт недоступен для сценария владельца или уже связан с клиентом.',413:'Слишком большой запрос.',502:'Meta не подтвердила настройку. Нужна проверка подключения.',503:'Сервис временно недоступен. Попробуйте обновить состояние.'};
+async function api(path,options={}){
+ const response=await fetch(path,{...options,headers:{Authorization:'Bearer '+adminKey,'Content-Type':'application/json'},cache:'no-store'});
+ if(!response.ok){let detail;try{detail=await response.json();}catch{}
+  if(detail?.error==='existing_webhook_callback_differs')throw new Error('В Meta указан другой адрес webhook. Он сохранён без изменений; нужна проверка владельца.');
+  throw new Error(errors[response.status]||'Не удалось выполнить запрос.');}
+ return response.status===204?null:response.json();
+}
+async function run(action){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await action();}catch(error){el('message').textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}}
+function clearRule(){el('rule').reset();el('rule').elements.id.value='';}
+async function load(){
+ const status=await api('/api/admin/instagram/status');
+ rules=await api('/api/admin/operator/rules');
+ el('entry').hidden=true;el('panel').hidden=false;
+ el('connection').textContent=status.connections.length?status.connections.map(c=>c.account_id+' · '+(c.connection_status==='active'?'Подключён':'Нужен повторный вход')+(c.customer_owned?' · Управляется из кабинета клиента':'')).join('\n'):'Instagram пока не подключён.';
+ const eventCount=status.events.reduce((total,event)=>total+Number(event.n),0);
+ el('incoming').textContent='Получено уведомлений Meta: '+status.deliveries+'. Входящих событий: '+eventCount+'.';
+ el('sending').textContent=status.automationEnabled&&status.sendingEnabled?'Автоматические ответы на сервере включены.':'Автоматические ответы на сервере выключены.';
+ el('polling').textContent=(status.apiPolling||[]).map(p=>'Проверка сообщений через API · '+p.account_id+' · '+({ok:'Работает',partial:'Доступен только ограниченный фрагмент переписок',running:'Проверяется',paused:'Приостановлена',rate_limited:'Ожидает снятия лимита Meta',meta_rejected:'Meta отклонила запрос',poll_failed:'Нужна проверка соединения'}[p.last_status]||'Подготовка')+(p.last_success_at?' · последняя проверка: '+new Date(p.last_success_at).toLocaleString('ru-RU'):'')).join('\n');
+ for(const form of [el('rule'),el('preview')]){
+  const select=form.elements.accountId,selected=select.value;select.replaceChildren();
+  for(const account of status.connections.filter(c=>c.connection_status==='active'&&!c.customer_owned)){
+   const option=document.createElement('option');option.value=account.account_id;option.textContent=account.account_id;select.append(option);}
+  if([...select.options].some(option=>option.value===selected))select.value=selected;
+ }
+ el('rules').replaceChildren();
+ if(!rules.length)el('rules').textContent='Сценариев пока нет.';
+ for(const rule of rules){
+  const card=document.createElement('article'),title=document.createElement('strong'),reply=document.createElement('p');
+  title.textContent=rule.keyword+' · '+(rule.enabled?'Включён':'Выключен');reply.textContent=rule.reply;
+  const edit=document.createElement('button');edit.textContent='Редактировать';edit.onclick=()=>{
+   const form=el('rule');for(const key of ['id','accountId','keyword','reply'])form.elements[key].value=rule[key];form.elements.enabled.checked=rule.enabled;form.scrollIntoView({behavior:'smooth'});};
+  const remove=document.createElement('button');remove.textContent='Удалить';remove.onclick=()=>run(async()=>{await api('/api/admin/operator/rules/'+encodeURIComponent(rule.id),{method:'DELETE'});await load();el('message').textContent='Сценарий удалён.';});
+  card.append(title,reply,edit,remove);el('rules').append(card);
+ }
+}
+el('login').onsubmit=event=>{event.preventDefault();adminKey=event.target.elements.key.value;event.target.reset();run(async()=>{await load();el('message').textContent='Вход выполнен.';});};
+el('logout').onclick=()=>{adminKey='';rules=[];el('panel').hidden=true;el('entry').hidden=false;el('rules').replaceChildren();el('preview').reset();clearRule();el('message').textContent='Вы вышли.';};
+el('refresh').onclick=()=>run(async()=>{await load();el('message').textContent='Состояние обновлено.';});
+el('connect').onclick=()=>run(async()=>{const data=await api('/auth/instagram/start',{method:'POST'});const url=new URL(data.authorizationUrl);if(url.origin!=='https://www.facebook.com'||url.pathname!=='/dialog/oauth')throw new Error('Неожиданный адрес входа Meta.');window.location.assign(url.href);});
+el('webhook').onclick=()=>run(async()=>{const result=await api('/api/admin/instagram/webhook',{method:'POST'});el('message').textContent=result.ready?'Webhook Meta готов к получению сообщений.':'Нужна проверка webhook.';});
+el('rule').onsubmit=event=>{event.preventDefault();run(async()=>{const form=event.target;const body={accountId:form.elements.accountId.value,keyword:form.elements.keyword.value,reply:form.elements.reply.value,enabled:form.elements.enabled.checked};const id=form.elements.id.value;await api('/api/admin/operator/rules'+(id?'/'+encodeURIComponent(id):''),{method:id?'PUT':'POST',body:JSON.stringify(body)});clearRule();await load();el('message').textContent='Сценарий сохранён. Общий режим отправки не изменён.';});};
+el('cancel').onclick=clearRule;
+el('preview').onsubmit=event=>{event.preventDefault();run(async()=>{const form=event.target;const result=await api('/api/admin/operator/preview',{method:'POST',body:JSON.stringify({accountId:form.elements.accountId.value,text:form.elements.text.value})});el('preview-result').textContent=result.matched?'Совпадение найдено. Ответ: '+result.reply:'Нет совпадений среди включённых сценариев.';});};
+</script></html>
