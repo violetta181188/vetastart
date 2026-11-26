@@ -26,9 +26,9 @@ dialog::backdrop{background:#090610b8}
 <button name="action" value="login">Войти</button><button name="action" value="register">Создать аккаунт</button><p id="login-status" role="status" aria-live="polite"></p></form>
 <small>Тестовая версия. Оплата не подключена. Регистрация доступна, только если её включил владелец сервиса.</small></section>
 <section id="recovery"><h2>Доступ к аккаунту</h2>
-<form id="email-action"><label>Email<input name="email" type="email" autocomplete="email" required></label>
+<form id="email-action" aria-describedby="recovery-status" novalidate><label>Email<input name="email" type="email" autocomplete="email" required></label>
 <button name="action" value="request-verification">Отправить подтверждение почты</button>
-<button name="action" value="forgot-password">Забыли пароль?</button></form></section>
+<button name="action" value="forgot-password">Забыли пароль?</button><p id="recovery-status" role="status" aria-live="polite"></p></form></section>
 <section id="verify-panel" hidden><h2>Подтверждение почты</h2><p>Нажмите кнопку, чтобы подтвердить адрес из письма.</p><button id="verify">Подтвердить email</button></section>
 <section id="reset-panel" hidden><h2>Новый пароль</h2><form id="reset"><label for="reset-password-input">От 12 символов</label><div class="password-field"><input id="reset-password-input" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required><button type="button" class="password-toggle" aria-label="Показать пароль" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div><button>Сохранить пароль</button></form></section>
 <main id="cabinet" hidden><p id="identity"></p><p id="subscription"></p><button id="logout">Выйти</button>
@@ -71,7 +71,7 @@ for (const toggle of document.querySelectorAll('.password-toggle')) {
 const el = id => document.getElementById(id);
 const message = text => { el('status').textContent = text; };
 async function api(path, options = {}) {
- const response = await fetch('/api/customer/' + path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+ const response = await fetch('/api/customer/' + path, { signal: AbortSignal.timeout(15000), ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
  if (!response.ok) {
   if (response.status === 401) { el('auth').hidden = false; el('cabinet').hidden = true; }
   const body = await response.json().catch(()=>null);
@@ -246,7 +246,7 @@ el('login').onsubmit = async event => {
   feedback.textContent = '';
   message('Вы вошли.');
  } catch (error) {
-  feedback.textContent = error.message;
+  feedback.textContent = error.name === 'TimeoutError' ? 'Сервер отвечает слишком долго. Попробуйте ещё раз.' : error.message;
  } finally {
   buttons.forEach(button => { button.disabled = false; });
  }
@@ -293,10 +293,30 @@ el('connect').onclick = () => run(async () => {
  if(url.origin !== 'https://www.facebook.com' || url.pathname !== '/dialog/oauth') throw new Error('Для кабинета требуется Unified Login.');
  window.location.assign(url.href);
 });
-el('email-action').onsubmit=event=>{event.preventDefault();run(async()=>{
- const data=new FormData(event.target);const result=await api(event.submitter.value,{method:'POST',body:JSON.stringify({email:data.get('email')})});
- message(result.message);event.target.reset();
-});};
+el('email-action').onsubmit = async event => {
+ event.preventDefault();
+ const form = event.currentTarget;
+ const email = form.elements.email;
+ const feedback = el('recovery-status');
+ if (!email.value.trim() || !email.validity.valid) {
+  feedback.textContent = 'Введите email, который использовали в VetaStart.';
+  email.focus();
+  return;
+ }
+ const action = event.submitter?.value ?? 'forgot-password';
+ const buttons = [...form.querySelectorAll('button[name="action"]')];
+ buttons.forEach(button => { button.disabled = true; });
+ feedback.textContent = 'Отправляем запрос…';
+ try {
+  const result = await api(action,{method:'POST',body:JSON.stringify({email:email.value})});
+  feedback.textContent = result.message;
+  form.reset();
+ } catch (error) {
+  feedback.textContent = error.name === 'TimeoutError' ? 'Сервер отвечает слишком долго. Попробуйте ещё раз.' : error.message;
+ } finally {
+  buttons.forEach(button => { button.disabled = false; });
+ }
+};
 const fragment=new URLSearchParams(window.location.hash.slice(1));
 const verificationToken=fragment.get('verify'),resetToken=fragment.get('reset');
 // Tokens stay in memory only; clear the address bar before any other requests.
