@@ -212,7 +212,11 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
   });
   router.get('/accounts', async (req, res) => res.json(await req.db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=?').all(req.customer.id)));
   router.get('/legacy-projects',async(req,res)=>res.json(await require('./legacy').legacyProjects(req.db,req.customer.email)));
-  router.get('/rules', async (req, res) => res.json(await req.db.prepare('SELECT id,account_id,keyword,reply,enabled FROM customer_rules WHERE customer_id=?').all(req.customer.id)));
+  router.get('/rules', async (req, res) => res.json(await req.db.prepare(`SELECT r.id,r.account_id,r.keyword,r.reply,r.enabled,
+    (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS contacts,
+    (SELECT COUNT(DISTINCT d.recipient_id) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id AND d.status='sent') AS sent_contacts,
+    (SELECT MAX(d.created_at) FROM drafts d WHERE d.scenario_id=r.id AND d.account_id=r.account_id) AS last_run
+    FROM customer_rules r WHERE r.customer_id=?`).all(req.customer.id)));
   router.get('/activity', async (req, res) => res.json(await req.db.prepare(`SELECT d.id,d.account_id,d.status,d.created_at
     FROM drafts d JOIN customer_accounts a ON a.account_id=d.account_id
     WHERE a.customer_id=? ORDER BY d.created_at DESC,d.id LIMIT 50`).all(req.customer.id)));
@@ -239,6 +243,30 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
         id
       });
     });
+  });
+  router.patch('/rules/:id', async (req, res) => {
+    const {keyword, reply, enabled} = req.body || {};
+    const changesReply = keyword !== undefined || reply !== undefined;
+    if (typeof enabled !== 'boolean' || (changesReply &&
+        (typeof keyword !== 'string' || !keyword.trim() || keyword.length > 100 ||
+        typeof reply !== 'string' || !reply.trim() || reply.length > 1000))) return res.sendStatus(400);
+    if (enabled && !(await access(req.db, req.customer.id, now())).active) return res.sendStatus(402);
+    const result = changesReply
+      ? await req.db.prepare('UPDATE customer_rules SET keyword=?, reply=?, enabled=? WHERE id=? AND customer_id=?')
+        .run(keyword.trim(), reply.trim(), Number(enabled), req.params.id, req.customer.id)
+      : await req.db.prepare('UPDATE customer_rules SET enabled=? WHERE id=? AND customer_id=?')
+        .run(Number(enabled), req.params.id, req.customer.id);
+    res.sendStatus(result.changes ? 204 : 404);
+  });
+  router.post('/rules/preview', async (req, res) => {
+    const {accountId, phrase} = req.body || {};
+    if (typeof accountId !== 'string' || typeof phrase !== 'string' ||
+        !phrase.trim() || phrase.length > 1000) return res.sendStatus(400);
+    const rules = await req.db.prepare(
+      'SELECT id, keyword, reply FROM customer_rules WHERE customer_id=? AND account_id=? AND enabled=1 ORDER BY id'
+    ).all(req.customer.id, accountId);
+    const {matches} = require('./automation');
+    res.json({matches: rules.filter(rule => matches(phrase, rule.keyword))});
   });
   router.delete('/rules/:id', async (req, res) => {
     const result = await req.db.prepare('DELETE FROM customer_rules WHERE id=? AND customer_id=?').run(req.params.id, req.customer.id);
