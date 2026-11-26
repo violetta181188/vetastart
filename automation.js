@@ -1,3 +1,4 @@
+const {matches, findMatchingRule} = require('./keyword-match');
 const { DatabaseSync } = require('node:sqlite');
 const { mkdirSync, chmodSync } = require('node:fs');
 const path = require('node:path');
@@ -18,15 +19,6 @@ function validateRules(rules) {
     ids.add(rule.id);
   }
   return rules;
-}
-
-function normalize(text) {
-  return text.normalize('NFKC').toLocaleLowerCase('ru').trim();
-}
-
-function matches(text, keyword) {
-  const escaped = normalize(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(^|[^\\p{L}\\p{N}_])${escaped}($|[^\\p{L}\\p{N}_])`, 'u').test(normalize(text));
 }
 
 function extractEvents(payload) {
@@ -116,8 +108,8 @@ class AutomationStore {
       const events = this.db.prepare("SELECT * FROM events WHERE status = 'pending' LIMIT ?").all(limit);
       let drafts = 0;
       for (const event of events) {
-        const rule = rules.find(rule => rule.enabled !== false && rule.accountId === event.account_id &&
-          rule.trigger === event.type && matches(event.text, rule.keyword));
+        const rule = findMatchingRule(rules.filter(rule => rule.enabled !== false &&
+          rule.accountId === event.account_id && rule.trigger === event.type), event.text);
         if (rule) {
           this.db.prepare(`INSERT INTO drafts
             (id, event_id, scenario_id, account_id, recipient_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)

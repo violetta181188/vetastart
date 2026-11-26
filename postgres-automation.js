@@ -2,7 +2,8 @@ const crypto=require('node:crypto');
 const fs=require('node:fs');
 const path=require('node:path');
 const {Pool}=require('pg');
-const {extractEvents,matches,validateRules}=require('./automation');
+const {extractEvents,validateRules}=require('./automation');
+const {findMatchingRule}=require('./keyword-match');
 
 // Async PostgreSQL counterpart of the tested inbox/draft pipeline. Explicitly
 // opt-in: not selected by DATABASE_URL alone while customer/auth migration is pending.
@@ -52,7 +53,7 @@ class PostgresAutomationStore {
     ORDER BY created_at,id LIMIT $1 FOR UPDATE SKIP LOCKED`,[limit]);
    let drafts=0;
    for(const event of rows){
-    const rule=rules.find(r=>r.enabled!==false&&r.accountId===event.account_id&&r.trigger===event.type&&matches(event.text,r.keyword));
+    const rule=findMatchingRule(rules.filter(r=>r.enabled!==false&&r.accountId===event.account_id&&r.trigger===event.type),event.text);
     if(rule){
      await db.query(`INSERT INTO vetastart_automation.drafts
       (id,event_id,scenario_id,account_id,recipient_id,text) VALUES($1,$2,$3,$4,$5,$6)`,

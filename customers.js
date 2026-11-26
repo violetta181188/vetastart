@@ -57,7 +57,7 @@ function bindAccount(db, accountId, customerId) {
 function customerRules(db) {
   initializeCustomers(db);
   return db.prepare(`SELECT r.* FROM customer_rules r JOIN customer_accounts a
-    ON a.account_id=r.account_id AND a.customer_id=r.customer_id`).all().map(r => ({
+    ON a.account_id=r.account_id AND a.customer_id=r.customer_id ORDER BY r.id`).all().map(r => ({
     id: r.id, accountId: r.account_id, trigger: 'message', keyword: r.keyword, reply: r.reply, enabled: !!r.enabled
   }));
 }
@@ -192,8 +192,9 @@ function installCustomers(app, { getStore, env, now = Date.now, sendMail }) {
     const rules = req.db.prepare(
       'SELECT id, keyword, reply FROM customer_rules WHERE customer_id=? AND account_id=? AND enabled=1 ORDER BY id'
     ).all(req.customer.id, accountId);
-    const {matches} = require('./automation');
-    res.json({matches: rules.filter(rule => matches(phrase, rule.keyword))});
+    const {findMatchingRule} = require('./keyword-match');
+    const rule = findMatchingRule(rules, phrase);
+    res.json({matches: rule ? [rule] : []});
   });
   router.delete('/rules/:id', (req, res) => {
     const result = req.db.prepare('DELETE FROM customer_rules WHERE id=? AND customer_id=?').run(req.params.id, req.customer.id);

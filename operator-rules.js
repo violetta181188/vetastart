@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const express = require('express');
 const path = require('node:path');
 const {adminOnly} = require('./admin-status');
-const {matches} = require('./postgres-app/automation');
+const {findMatchingRule} = require('./keyword-match');
 
 async function initializeOperatorRules(db) {
   await db.exec(`CREATE TABLE IF NOT EXISTS operator_rules (
@@ -61,7 +61,7 @@ function installOperator(app, {getStore, env}) {
     const {accountId,text}=req.body || {};
     if(typeof text!=='string'||text.length>2000||!/^\d+$/.test(accountId||''))return res.sendStatus(400);
     const rules=await operatorRules(req.db);
-    const rule=rules.find(rule=>rule.enabled&&rule.accountId===accountId&&matches(text,rule.keyword));
+    const rule=findMatchingRule(rules.filter(rule=>rule.enabled&&rule.accountId===accountId),text);
     res.json({matched:!!rule,...(rule?{ruleId:rule.id,reply:rule.reply}:{}),sent:false});
   }));
   app.use('/api/admin/operator',router);

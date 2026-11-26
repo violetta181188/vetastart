@@ -50,6 +50,7 @@ dialog::backdrop{background:#090610b8}
 <dialog id="preview"><h2>Проверить фразу</h2>
 <form id="preview-form"><label>Сообщение Direct<input name="phrase" maxlength="1000" required></label>
 <button>Проверить</button><button type="button" id="preview-close">Закрыть</button></form>
+<p><small>Для слов от четырёх букв учитывается одна опечатка.</small></p>
 <p id="preview-result" role="status"></p></dialog>
 <section id="legacy-section" hidden><h2>Черновики прежнего кабинета</h2><p>Они сохранены для просмотра. Для автоматизации создайте сценарий после подключения Instagram.</p><div id="legacy"></div></section>
 <section><h2>Последние ответы</h2><button id="refresh">Обновить статусы</button><div id="activity"></div></section>
@@ -104,7 +105,7 @@ function renderRules() {
   const reply = document.createElement('p');
   reply.textContent = rule.reply;
   const channel = document.createElement('small');
-  channel.textContent = 'Direct · целое слово';
+  channel.textContent = 'Direct · целое слово и опечатки';
   const metrics = document.createElement('div');
   metrics.className = 'metrics';
   for (const value of [
