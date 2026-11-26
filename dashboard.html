@@ -16,12 +16,13 @@ body:has(#cabinet:not([hidden])){max-width:1200px}
 .metrics small{flex:1;min-width:95px}
 dialog{background:#211b36;color:inherit;border:1px solid #69548c;border-radius:16px;width:min(480px,calc(100% - 48px));padding:20px}
 dialog::backdrop{background:#090610b8}
+.password-field{position:relative}.password-field input{padding-inline-end:52px}.password-toggle{position:absolute;inset-inline-end:3px;top:50%;transform:translateY(-50%);display:grid;place-items:center;margin:0;width:44px;height:40px;background:transparent;color:#c7b7ff;border:0}.password-toggle:focus-visible{outline:2px solid currentColor}.password-toggle[aria-pressed="false"] .eye-slash{display:none}
 </style>
 <header><a href="/">VetaStart</a><h1>Ваш кабинет</h1></header>
 <p id="status" role="status" aria-live="polite"></p>
 <section id="auth"><h2>Вход и регистрация</h2>
 <form id="login"><label>Email<input name="email" type="email" autocomplete="username" required></label>
-<label>Пароль — от 12 символов<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="256" required></label>
+<label for="login-password">Пароль — от 12 символов</label><div class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="256" required><button type="button" class="password-toggle" aria-label="Показать пароль" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div>
 <button name="action" value="login">Войти</button><button name="action" value="register">Создать аккаунт</button></form>
 <small>Тестовая версия. Оплата не подключена. Регистрация доступна, только если её включил владелец сервиса.</small></section>
 <section id="recovery"><h2>Доступ к аккаунту</h2>
@@ -29,7 +30,7 @@ dialog::backdrop{background:#090610b8}
 <button name="action" value="request-verification">Отправить подтверждение почты</button>
 <button name="action" value="forgot-password">Забыли пароль?</button></form></section>
 <section id="verify-panel" hidden><h2>Подтверждение почты</h2><p>Нажмите кнопку, чтобы подтвердить адрес из письма.</p><button id="verify">Подтвердить email</button></section>
-<section id="reset-panel" hidden><h2>Новый пароль</h2><form id="reset"><label>От 12 символов<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required></label><button>Сохранить пароль</button></form></section>
+<section id="reset-panel" hidden><h2>Новый пароль</h2><form id="reset"><label for="reset-password-input">От 12 символов</label><div class="password-field"><input id="reset-password-input" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required><button type="button" class="password-toggle" aria-label="Показать пароль" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div><button>Сохранить пароль</button></form></section>
 <main id="cabinet" hidden><p id="identity"></p><p id="subscription"></p><button id="logout">Выйти</button>
 <section><h2>Instagram</h2><p>Подключите профессиональный аккаунт через официальную страницу Meta.</p>
 <button id="connect">Подключить Instagram</button><div id="accounts"></div></section>
@@ -57,6 +58,16 @@ dialog::backdrop{background:#090610b8}
 <section><h2>Тариф и оплата</h2><p id="billing-status"></p><div id="plans"></div><h3>Ваши счета</h3><div id="invoices"></div>
 <p><small>Оплачивается 30 дней доступа. Автоматических списаний нет. Если текущий период ещё действует, следующий начнётся после него.</small></p></section></main>
 <script>
+for (const toggle of document.querySelectorAll('.password-toggle')) {
+ const input = toggle.previousElementSibling;
+ function setVisibility(visible) {
+  input.type = visible ? 'text' : 'password';
+  toggle.setAttribute('aria-pressed', String(visible));
+  toggle.setAttribute('aria-label', visible ? 'Скрыть пароль' : 'Показать пароль');
+ }
+ toggle.addEventListener('click', () => setVisibility(input.type === 'password'));
+ input.form.addEventListener('reset', () => setVisibility(false));
+}
 const el = id => document.getElementById(id);
 const message = text => { el('status').textContent = text; };
 async function api(path, options = {}) {
