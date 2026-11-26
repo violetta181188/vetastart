@@ -25,8 +25,12 @@ function inspectConfiguration(env,{profile='runtime',nodeVersion=process.version
  }
  if(profile==='pilot'||env.VETASTART_SIGNUP_ENABLED==='true'||env.VETASTART_MAIL_ENABLED==='true'){
   add('VETASTART_MAIL_ENABLED',env.VETASTART_MAIL_ENABLED==='true');
-  for(const name of ['SMTP_HOST','SMTP_USER','SMTP_PASSWORD'])add(name,present(name));
-  add('SMTP_PORT',['465','587'].includes(env.SMTP_PORT||'465'));
+  if (present('RESEND_API_KEY')) {
+   add('RESEND_API_KEY', true);
+  } else {
+   for(const name of ['SMTP_HOST','SMTP_USER','SMTP_PASSWORD'])add(name,present(name));
+   add('SMTP_PORT',['465','587'].includes(env.SMTP_PORT||'465'));
+  }
   add('MAIL_FROM',/^\S+@[^\s@]+\.[^\s@]+$/.test(env.MAIL_FROM||''));
  }
  if(profile==='pilot'||env.VETASTART_SEND_ENABLED==='true'||env.VETASTART_API_POLL_ENABLED==='true'){
