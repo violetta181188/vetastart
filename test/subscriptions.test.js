@@ -18,9 +18,17 @@ function setup(t) {
 test('trial is issued only once and stops exactly at its expiry',t=>{
  const store=setup(t);startTrial(store.db,'customer',time+day);
  const sub=access(store.db,'customer',time);
- assert.equal(sub.status,'trial');assert.equal(sub.endAt,time+7*day);assert.equal(sub.limits.messages,100);
- assert.equal(access(store.db,'customer',time+7*day).active,false);
+ assert.equal(sub.status,'trial');assert.equal(sub.endAt,time+3*day);assert.equal(sub.limits.messages,100);
+ assert.equal(access(store.db,'customer',time+3*day).active,false);
  assert.equal(store.db.prepare('SELECT count(*) AS n FROM subscription_periods').get().n,1);
+});
+test('previously issued seven-day trial keeps its expiry',t=>{
+ const store=setup(t);
+ store.db.prepare("UPDATE subscription_periods SET end_at=? WHERE customer_id=? AND plan_id='trial'").run(time+7*day,'customer');
+ startTrial(store.db,'customer',time+day);
+ const existingTrial=access(store.db,'customer',time+3*day);
+ assert.equal(existingTrial.status,'trial');
+ assert.equal(existingTrial.endAt,time+7*day);
 });
 test('confirmed payment queues a paid period; duplicate receipt never extends twice',t=>{
  const store=setup(t);
@@ -28,8 +36,8 @@ test('confirmed payment queues a paid period; duplicate receipt never extends tw
  assert.deepEqual(applyVerifiedPayment(store.db,payment,time),{duplicate:false});
  assert.deepEqual(applyVerifiedPayment(store.db,payment,time),{duplicate:true});
  assert.equal(access(store.db,'customer',time).planId,'trial');
- assert.equal(access(store.db,'customer',time+7*day).planId,'start');
- assert.equal(access(store.db,'customer',time+37*day).active,false);
+ assert.equal(access(store.db,'customer',time+3*day).planId,'start');
+ assert.equal(access(store.db,'customer',time+33*day).active,false);
  for(const override of [{amount:1},{status:'pending'},{planId:'trial'},{currency:'USD'},{customerId:'unknown'}])
    assert.throws(()=>applyVerifiedPayment(store.db,{...payment,...override},time));
 });
@@ -37,7 +45,7 @@ test('account limit is shared across client accounts and existing account can re
  const store=setup(t);
  assert.doesNotThrow(()=>requireAccountSlot(store.db,'customer','123',time));
  assert.throws(()=>requireAccountSlot(store.db,'customer','999',time));
- assert.throws(()=>requireAccountSlot(store.db,'customer','123',time+7*day));
+ assert.throws(()=>requireAccountSlot(store.db,'customer','123',time+3*day));
 });
 test('quota reservation and claim are atomic; last allowed attempt cannot be reused',t=>{
  const store=setup(t);const period=access(store.db,'customer',time).periodId;
@@ -50,7 +58,7 @@ test('quota reservation and claim are atomic; last allowed attempt cannot be reu
 });
 test('expired access or exhausted quota leaves draft pending and makes no reservation',t=>{
  const store=setup(t);const draft=store.db.prepare('SELECT id FROM drafts').get().id;
- assert.equal(reserveSend(store.db,'customer',draft,time+7*day),false);
+ assert.equal(reserveSend(store.db,'customer',draft,time+3*day),false);
  assert.equal(store.db.prepare('SELECT status FROM drafts').get().status,'draft');
  assert.equal(access(store.db,'customer',time).usedMessages,0);
  const period=access(store.db,'customer',time).periodId;
@@ -80,7 +88,7 @@ test('paid access keeps counting sends beyond the old message quota',t=>{
  const store=setup(t);
  applyVerifiedPayment(store.db,{customerId:'customer',paymentId:'provider:paid-no-quota',planId:'start',
   amount:59000,currency:'RUB',status:'succeeded'},time);
- const paidAt=time+7*day;
+ const paidAt=time+3*day;
  const paid=access(store.db,'customer',paidAt);
  assert.equal(paid.limits.messages,null);
  const insert=store.db.prepare('INSERT INTO subscription_usage VALUES (?,?,?)');
@@ -96,5 +104,5 @@ test('a paid period grants the number of Instagram accounts selected in the invo
  applyVerifiedPayment(store.db,{customerId:'customer',paymentId:'provider:three',planId:'start_3',
   amount:79000,currency:'RUB',status:'succeeded'},time);
  assert.equal(access(store.db,'customer',time).limits.accounts,1);
- assert.equal(access(store.db,'customer',time+7*day).limits.accounts,3);
+ assert.equal(access(store.db,'customer',time+3*day).limits.accounts,3);
 });

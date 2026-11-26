@@ -26,7 +26,7 @@ const additionalAccountPlans = Object.fromEntries(
 );
 
 const PLANS = Object.freeze({
-  trial: { title:'Пробный', days:7, price:0, accounts:1, rules:3, messages:100 },
+  trial: { title:'Пробный', days:3, price:0, accounts:1, rules:3, messages:100 },
   start: START,
   ...additionalAccountPlans,
   // Preserve the limits and payment handling for previously issued plans.
