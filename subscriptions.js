@@ -1,12 +1,44 @@
 const crypto = require('node:crypto');
 const DAY = 86400000;
-// Proposed pilot limits. Billing is not active until a provider adapter verifies payments.
+const START = Object.freeze({
+  title: 'Старт', days: 30, price: 59000, accounts: 1, rules: 5, messages: null,
+  availableForCheckout: true
+});
+const EXTRA_ACCOUNT_PRICE = 10000;
+const MAX_START_ACCOUNTS = 10;
+const START_OFFER = Object.freeze({
+  id: 'start', title: START.title, days: START.days, price: START.price, accounts: START.accounts,
+  rules: START.rules, messages: START.messages, extraAccountPrice: EXTRA_ACCOUNT_PRICE, maxAccounts: MAX_START_ACCOUNTS
+});
+
+function selectStartPlan(accounts = 1) {
+  if (!Number.isSafeInteger(accounts) || accounts < 1 || accounts > MAX_START_ACCOUNTS) return null;
+  return accounts === 1 ? 'start' : 'start_' + accounts;
+}
+
+const additionalAccountPlans = Object.fromEntries(
+  Array.from({length: MAX_START_ACCOUNTS - 1}, (_, index) => {
+    const accounts = index + 2;
+    return [selectStartPlan(accounts), Object.freeze({
+      ...START, accounts, price: START.price + (accounts - 1) * EXTRA_ACCOUNT_PRICE
+    })];
+  })
+);
+
 const PLANS = Object.freeze({
   trial: { title:'Пробный', days:7, price:0, accounts:1, rules:3, messages:100 },
-  start: { title:'Старт', days:30, price:99000, accounts:1, rules:5, messages:1000 },
-  business: { title:'Бизнес', days:30, price:249000, accounts:3, rules:20, messages:5000 },
-  pro: { title:'PRO', days:30, price:499000, accounts:10, rules:100, messages:20000 }
+  start: START,
+  ...additionalAccountPlans,
+  // Preserve the limits and payment handling for previously issued plans.
+  business: { title:'Бизнес', days:30, price:249000, accounts:3, rules:20, messages:null },
+  pro: { title:'PRO', days:30, price:499000, accounts:10, rules:100, messages:null }
 });
+
+function isPlanPayment(planId, amount) {
+  if (!Object.hasOwn(PLANS, planId) || planId === 'trial' || !Number.isSafeInteger(amount)) return false;
+  // Old Start invoices had their own immutable amount.
+  return amount === PLANS[planId].price || (planId === 'start' && amount === 99000);
+}
 
 function initializeSubscriptions(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS subscription_periods (
@@ -46,7 +78,7 @@ function access(db, customerId, now = Date.now()) {
 function applyVerifiedPayment(db, { customerId, paymentId, planId, amount, currency, status }, now = Date.now()) {
   initializeSubscriptions(db);
   const plan=PLANS[planId];
-  if (!Object.hasOwn(PLANS,planId) || planId==='trial' || status!=='succeeded' || !Number.isSafeInteger(amount) || amount!==plan.price || currency!=='RUB' ||
+  if (!isPlanPayment(planId,amount) || status!=='succeeded' || currency!=='RUB' ||
       typeof paymentId!=='string' || !paymentId || !db.prepare('SELECT id FROM customers WHERE id=?').get(customerId)) {
     throw new Error('Confirmed payment does not match server plan');
   }
@@ -78,7 +110,7 @@ function reserveSend(db, customerId, draftId, now = Date.now()) {
   db.exec('BEGIN IMMEDIATE');
   try {
     const entitlement=access(db,customerId,now);
-    if(!entitlement.active || entitlement.usedMessages>=entitlement.limits.messages) {
+    if(!entitlement.active || (entitlement.limits.messages !== null && entitlement.usedMessages >= entitlement.limits.messages)) {
       db.exec('COMMIT');return false;
     }
     const draft=db.prepare('SELECT account_id,scenario_id FROM drafts WHERE id=?').get(draftId);
@@ -97,4 +129,4 @@ function reserveSend(db, customerId, draftId, now = Date.now()) {
   } catch(error) {db.exec('ROLLBACK');throw error;}
 }
 
-module.exports={PLANS,initializeSubscriptions,startTrial,access,applyVerifiedPayment,requireAccountSlot,reserveSend};
+module.exports={PLANS,START_OFFER,selectStartPlan,isPlanPayment,initializeSubscriptions,startTrial,access,applyVerifiedPayment,requireAccountSlot,reserveSend};

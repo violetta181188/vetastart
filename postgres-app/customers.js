@@ -6,7 +6,7 @@ const scrypt = promisify(crypto.scrypt);
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const cookieName = 'vetastart_session';
 const {startTrial, access} = require('./subscriptions');
-const {PLANS} = require('./subscriptions');
+const {START_OFFER, selectStartPlan} = require('./subscriptions');
 const {initializeBilling, config: billingConfig, createCheckout} = require('./robokassa');
 const {initializeRecovery, developmentAuth, recoveryService} = require('./account-recovery');
 async function initializeCustomers(db) {
@@ -191,22 +191,15 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail}) {
     res.json({
       enabled,
       isTest,
-      plans: Object.entries(PLANS).filter(([id]) => id !== 'trial').map(([id, p]) => ({
-        id,
-        title: p.title,
-        price: p.price,
-        days: p.days,
-        accounts: p.accounts,
-        rules: p.rules,
-        messages: p.messages
-      })),
+      plans: [START_OFFER],
       invoices
     });
   });
   router.post('/billing/checkout', async (req, res) => {
-    if (!Object.hasOwn(PLANS, req.body?.planId) || req.body.planId === 'trial') return res.sendStatus(400);
+    const planId = req.body?.planId === START_OFFER.id ? selectStartPlan(req.body.accounts) : null;
+    if (!planId) return res.sendStatus(400);
     try {
-      res.json(await createCheckout(req.db, req.customer.id, req.body.planId, env, now()));
+      res.json(await createCheckout(req.db, req.customer.id, planId, env, now()));
     } catch {
       res.sendStatus(503);
     }

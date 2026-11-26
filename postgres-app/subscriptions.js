@@ -1,39 +1,6 @@
 const crypto = require('node:crypto');
 const DAY = 86400000;
-const PLANS = Object.freeze({
-  trial: {
-    title: 'Пробный',
-    days: 7,
-    price: 0,
-    accounts: 1,
-    rules: 3,
-    messages: 100
-  },
-  start: {
-    title: 'Старт',
-    days: 30,
-    price: 99000,
-    accounts: 1,
-    rules: 5,
-    messages: 1000
-  },
-  business: {
-    title: 'Бизнес',
-    days: 30,
-    price: 249000,
-    accounts: 3,
-    rules: 20,
-    messages: 5000
-  },
-  pro: {
-    title: 'PRO',
-    days: 30,
-    price: 499000,
-    accounts: 10,
-    rules: 100,
-    messages: 20000
-  }
-});
+const {PLANS, START_OFFER, selectStartPlan, isPlanPayment} = require('../subscriptions');
 async function initializeSubscriptions(db) {
   await db.exec(`CREATE TABLE IF NOT EXISTS subscription_periods (
     id TEXT PRIMARY KEY, customer_id TEXT NOT NULL, plan_id TEXT NOT NULL,
@@ -81,7 +48,7 @@ async function access(db, customerId, now = Date.now()) {
 async function applyVerifiedPayment(db, {customerId, paymentId, planId, amount, currency, status}, now = Date.now()) {
   await initializeSubscriptions(db);
   const plan = PLANS[planId];
-  if (!Object.hasOwn(PLANS, planId) || planId === 'trial' || status !== 'succeeded' || !Number.isSafeInteger(amount) || amount !== plan.price || currency !== 'RUB' || typeof paymentId !== 'string' || !paymentId || !await db.prepare('SELECT id FROM customers WHERE id=?').get(customerId)) {
+  if (!isPlanPayment(planId, amount) || status !== 'succeeded' || currency !== 'RUB' || typeof paymentId !== 'string' || !paymentId || !await db.prepare('SELECT id FROM customers WHERE id=?').get(customerId)) {
     throw new Error('Confirmed payment does not match server plan');
   }
   return await db.transaction(async () => {
@@ -112,7 +79,7 @@ async function reserveSend(db, customerId, draftId, now = Date.now()) {
   await initializeSubscriptions(db);
   return await db.transaction(async () => {
     const entitlement = await access(db, customerId, now);
-    if (!entitlement.active || entitlement.usedMessages >= entitlement.limits.messages) {
+    if (!entitlement.active || (entitlement.limits.messages !== null && entitlement.usedMessages >= entitlement.limits.messages)) {
       return false;
     }
     const draft = await db.prepare('SELECT account_id,scenario_id FROM drafts WHERE id=?').get(draftId);
@@ -129,6 +96,8 @@ async function reserveSend(db, customerId, draftId, now = Date.now()) {
 }
 module.exports = {
   PLANS,
+  START_OFFER,
+  selectStartPlan,
   initializeSubscriptions,
   startTrial,
   access,

@@ -19,12 +19,16 @@ test('checkout is server-priced, signed, reuses pending invoice and never expose
  const store=setup(t);const checkout=createCheckout(store.db,'customer','start',env,1000);
  const url=new URL(checkout.paymentUrl);
  assert.equal(url.origin+url.pathname,'https://auth.robokassa.ru/Merchant/Index.aspx');
- assert.equal(url.searchParams.get('OutSum'),'990.00');assert.equal(url.searchParams.get('IsTest'),'1');
+ assert.equal(url.searchParams.get('OutSum'),'590.00');assert.equal(url.searchParams.get('IsTest'),'1');
  assert.equal(url.searchParams.get('SignatureValue'),crypto.createHash('sha256').update(
-  `test-merchant:990.00:${checkout.invoiceId}:sandbox-one:Shp_order=${url.searchParams.get('Shp_order')}`).digest('hex'));
+  `test-merchant:590.00:${checkout.invoiceId}:sandbox-one:Shp_order=${url.searchParams.get('Shp_order')}`).digest('hex'));
  assert.ok(!url.href.includes('sandbox-one'));assert.ok(!url.href.includes('sandbox-two'));
  assert.equal(createCheckout(store.db,'customer','start',env,1001).invoiceId,checkout.invoiceId);
  assert.throws(()=>createCheckout(store.db,'customer','trial',env));
+ assert.throws(()=>createCheckout(store.db,'customer','business',env));
+ assert.throws(()=>createCheckout(store.db,'customer','pro',env));
+ assert.equal(new URL(createCheckout(store.db,'customer','start_2',env,1002).paymentUrl).searchParams.get('OutSum'),'690.00');
+
  assert.throws(()=>createCheckout(store.db,'customer','__proto__',env));
  assert.throws(()=>createCheckout(store.db,'customer','start',{...env,ROBOKASSA_TEST_MODE:'false'}));
 });
@@ -38,17 +42,17 @@ test('sandbox payment never grants access, including mode change and forged IsTe
 });
 test('live signed result grants once and still processes pending invoices after new checkout is disabled',t=>{
  const store=setup(t);const live={...env,ROBOKASSA_TEST_MODE:'false',ROBOKASSA_LIVE_ENABLED:'true'};
- const checkout=createCheckout(store.db,'customer','business',live,1000),result=fields(checkout,live);
+ const checkout=createCheckout(store.db,'customer','start_3',live,1000),result=fields(checkout,live);
  const disabled={...live,ROBOKASSA_ENABLED:'false',ROBOKASSA_LIVE_ENABLED:'false'};
  assert.equal(acceptResult(store.db,result,disabled,2000),'OK'+checkout.invoiceId);
  acceptResult(store.db,result,disabled,3000);
  const rows=store.db.prepare('SELECT * FROM subscription_periods').all();assert.equal(rows.length,1);
- assert.equal(rows[0].plan_id,'business');assert.equal(rows[0].start_at,2000);assert.equal(rows[0].end_at,2000+30*86400000);
+ assert.equal(rows[0].plan_id,'start_3');assert.equal(rows[0].start_at,2000);assert.equal(rows[0].end_at,2000+30*86400000);
  assert.equal(store.db.prepare('SELECT status FROM robokassa_invoices').get().status,'paid');
 });
 test('wrong signature, sum, invoice, custom fields and sandbox signature cannot grant live access',t=>{
  const store=setup(t);const live={...env,ROBOKASSA_TEST_MODE:'false',ROBOKASSA_LIVE_ENABLED:'true'};
- const checkout=createCheckout(store.db,'customer','pro',live),result=fields(checkout,live);
+ const checkout=createCheckout(store.db,'customer','start_2',live),result=fields(checkout,live);
  for(const override of [{SignatureValue:'bad'},{OutSum:'1.00'},{InvId:'999'},{Shp_order:'other'},{Shp_extra:'unexpected'},
   {SignatureValue:fields({...checkout,isTest:true},env).SignatureValue}])
   assert.throws(()=>acceptResult(store.db,{...result,...override},live));
@@ -69,4 +73,16 @@ test('HTTP ResultURL validates form signatures; browser return never grants acce
  assert.equal(bad.status,400);
  const good=await fetch(base+'/webhooks/payments/robokassa',{method:'POST',body:new URLSearchParams(result)});
  assert.equal(good.status,200);assert.equal(await good.text(),'OK'+checkout.invoiceId);
+});
+
+test('existing Start invoices are still recognized at their original 990 ruble price',t=>{
+ const store=setup(t);
+ const live={...env,ROBOKASSA_TEST_MODE:'false',ROBOKASSA_LIVE_ENABLED:'true'};
+ const checkout=createCheckout(store.db,'customer','start',live,1000);
+ store.db.prepare('UPDATE robokassa_invoices SET amount=? WHERE id=?').run(99000,checkout.invoiceId);
+ const paymentUrl=new URL(checkout.paymentUrl);
+ paymentUrl.searchParams.set('OutSum','990.00');
+ const result=fields({...checkout,paymentUrl:paymentUrl.href},live);
+ assert.equal(acceptResult(store.db,result,live,2000),'OK'+checkout.invoiceId);
+ assert.equal(store.db.prepare('SELECT plan_id FROM subscription_periods').get().plan_id,'start');
 });

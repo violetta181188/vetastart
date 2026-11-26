@@ -35,16 +35,19 @@ function kopeks(raw) {
 }
 async function createCheckout(db, customerId, planId, env, now = Date.now()) {
   const settings = config(env);
-  if (!Object.hasOwn(PLANS, planId) || planId === 'trial') throw new Error('Invalid plan');
+  if (!Object.hasOwn(PLANS, planId) || !PLANS[planId].availableForCheckout) throw new Error('Invalid plan');
   if (!await db.prepare('SELECT id FROM customers WHERE id=?').get(customerId)) throw new Error('Customer not found');
   await initializeBilling(db);
-  let invoice = await db.prepare(`SELECT * FROM robokassa_invoices WHERE customer_id=? AND plan_id=? AND is_test=?
-    AND amount=? AND status='pending' AND created_at>? ORDER BY id DESC LIMIT 1`).get(customerId, planId, Number(settings.isTest), PLANS[planId].price, now - 900000);
-  if (!invoice) {
+  const invoice = await db.transaction(async () => {
+    const pending = await db.prepare(`SELECT * FROM robokassa_invoices WHERE customer_id=? AND plan_id=? AND is_test=?
+      AND amount=? AND status='pending' AND created_at>? ORDER BY id DESC LIMIT 1`)
+      .get(customerId, planId, Number(settings.isTest), PLANS[planId].price, now - 900000);
+    if (pending) return pending;
     const result = await db.prepare(`INSERT INTO robokassa_invoices
-      (order_key,customer_id,plan_id,amount,is_test,created_at) VALUES (?,?,?,?,?,?)`).run(crypto.randomUUID(), customerId, planId, PLANS[planId].price, Number(settings.isTest), now);
-    invoice = await db.prepare('SELECT * FROM robokassa_invoices WHERE id=?').get(result.lastInsertRowid);
-  }
+      (order_key,customer_id,plan_id,amount,is_test,created_at) VALUES (?,?,?,?,?,?)`)
+      .run(crypto.randomUUID(), customerId, planId, PLANS[planId].price, Number(settings.isTest), now);
+    return await db.prepare('SELECT * FROM robokassa_invoices WHERE id=?').get(result.lastInsertRowid);
+  });
   if (invoice.id > 2147483647) throw new Error('Invoice ID exceeds supported range');
   const outSum = rubles(invoice.amount);
   const signed = signature([settings.login, outSum, String(invoice.id), settings.password1, 'Shp_order=' + invoice.order_key], settings.algorithm);
@@ -53,7 +56,7 @@ async function createCheckout(db, customerId, planId, env, now = Date.now()) {
     MerchantLogin: settings.login,
     OutSum: outSum,
     InvId: String(invoice.id),
-    Description: `VetaStart: ${PLANS[planId].title}, 30 дней`,
+    Description: `VetaStart: ${PLANS[planId].title}, 30 дней, аккаунтов: ${PLANS[planId].accounts}`,
     SignatureValue: signed,
     Shp_order: invoice.order_key,
     ...settings.isTest ? {

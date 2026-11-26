@@ -118,15 +118,17 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.deepEqual(await(await request('/api/customer/activity',{cookie:second})).json(),[]);
  });
  await t.test('Robokassa callback grants exactly one period using PostgreSQL identity invoice',async()=>{
-  const checkout=await request('/api/customer/billing/checkout',{cookie:first,method:'POST',body:{planId:'start'}});
+  const checkout=await request('/api/customer/billing/checkout',{cookie:first,method:'POST',body:{planId:'start',accounts:3}});
   assert.equal(checkout.status,200,await checkout.clone().text());
   const link=new URL((await checkout.json()).paymentUrl),sum=link.searchParams.get('OutSum'),id=link.searchParams.get('InvId'),order=link.searchParams.get('Shp_order');
+  assert.equal(sum,'790.00');
   const signature=crypto.createHash('sha256').update(`${sum}:${id}:${env.ROBOKASSA_PASSWORD2}:Shp_order=${order}`).digest('hex');
   for(let n=0;n<2;n++){
    const result=await request('/webhooks/payments/robokassa',{method:'POST',raw:new URLSearchParams({OutSum:sum,InvId:id,Shp_order:order,SignatureValue:signature}),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
    assert.equal(result.status,200,await result.clone().text());assert.equal(await result.text(),'OK'+id);
   }
-  assert.equal((await store.db.prepare("SELECT count(*) AS n FROM subscription_periods WHERE payment_id IS NOT NULL").get()).n,1);
+  const paidPeriods=await store.db.prepare('SELECT plan_id FROM subscription_periods WHERE payment_id IS NOT NULL').all();
+  assert.deepEqual(paidPeriods,[{plan_id:'start_3'}]);
  });
  await t.test('password reset invalidates sessions and trial is not duplicated',async()=>{
   const forgot=await request('/api/customer/forgot-password',{method:'POST',body:{email:'first@example.test'}});assert.equal(forgot.status,202);

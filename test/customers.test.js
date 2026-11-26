@@ -116,8 +116,17 @@ test('billing checkout requires customer session and provider setup; invoices re
  Object.assign(env,{ROBOKASSA_ENABLED:'true',ROBOKASSA_MERCHANT_LOGIN:'test',ROBOKASSA_HASH_ALGORITHM:'sha256',
    ROBOKASSA_TEST_PASSWORD1:'test-one',ROBOKASSA_TEST_PASSWORD2:'test-two'});
  const checkout=await request('/api/customer/billing/checkout',{cookie:first,method:'POST',body:{planId:'start',amount:1}});
- assert.equal(checkout.status,200);assert.equal(new URL((await checkout.json()).paymentUrl).searchParams.get('OutSum'),'990.00');
- assert.equal((await (await request('/api/customer/billing',{cookie:first})).json()).invoices.length,1);
+ assert.equal(checkout.status,200);assert.equal(new URL((await checkout.json()).paymentUrl).searchParams.get('OutSum'),'590.00');
+ const catalog=await (await request('/api/customer/billing',{cookie:first})).json();
+ assert.deepEqual(catalog.plans.map(plan=>[plan.id,plan.price,plan.extraAccountPrice,plan.messages]),[['start',59000,10000,null]]);
+ const extra=await request('/api/customer/billing/checkout',{method:'POST',cookie:first,body:{planId:'start',accounts:3}});
+ assert.equal(extra.status,200);
+ assert.equal(new URL((await extra.json()).paymentUrl).searchParams.get('OutSum'),'790.00');
+ for(const body of [{planId:'business'},{planId:'start',accounts:0},{planId:'start',accounts:11},{planId:'start',accounts:'2'}]) {
+  assert.equal((await request('/api/customer/billing/checkout',{method:'POST',cookie:first,body})).status,400);
+ }
+
+ assert.equal((await (await request('/api/customer/billing',{cookie:first})).json()).invoices.length,2);
  assert.equal((await (await request('/api/customer/billing',{cookie:second})).json()).invoices.length,0);
 });
 

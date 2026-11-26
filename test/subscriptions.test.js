@@ -24,7 +24,7 @@ test('trial is issued only once and stops exactly at its expiry',t=>{
 });
 test('confirmed payment queues a paid period; duplicate receipt never extends twice',t=>{
  const store=setup(t);
- const payment={customerId:'customer',paymentId:'provider:payment-1',planId:'start',amount:99000,currency:'RUB',status:'succeeded'};
+ const payment={customerId:'customer',paymentId:'provider:payment-1',planId:'start',amount:59000,currency:'RUB',status:'succeeded'};
  assert.deepEqual(applyVerifiedPayment(store.db,payment,time),{duplicate:false});
  assert.deepEqual(applyVerifiedPayment(store.db,payment,time),{duplicate:true});
  assert.equal(access(store.db,'customer',time).planId,'trial');
@@ -74,4 +74,27 @@ test('accounts beyond the current plan cap cannot send after downgrade or migrat
  const draft=store.db.prepare("SELECT id FROM drafts WHERE account_id='999'").get().id;
  assert.equal(reserveSend(store.db,'customer',draft,time),false);
  assert.equal(access(store.db,'customer',time).usedMessages,0);
+});
+
+test('paid access keeps counting sends beyond the old message quota',t=>{
+ const store=setup(t);
+ applyVerifiedPayment(store.db,{customerId:'customer',paymentId:'provider:paid-no-quota',planId:'start',
+  amount:59000,currency:'RUB',status:'succeeded'},time);
+ const paidAt=time+7*day;
+ const paid=access(store.db,'customer',paidAt);
+ assert.equal(paid.limits.messages,null);
+ const insert=store.db.prepare('INSERT INTO subscription_usage VALUES (?,?,?)');
+ for(let index=0;index<1000;index++) insert.run('paid-previous-'+index,paid.periodId,paidAt);
+ const draft=store.db.prepare('SELECT id FROM drafts').get().id;
+ assert.equal(reserveSend(store.db,'customer',draft,paidAt),true);
+ assert.equal(access(store.db,'customer',paidAt).usedMessages,1001);
+ assert.equal(reserveSend(store.db,'customer',draft,paidAt),false);
+});
+
+test('a paid period grants the number of Instagram accounts selected in the invoice',t=>{
+ const store=setup(t);
+ applyVerifiedPayment(store.db,{customerId:'customer',paymentId:'provider:three',planId:'start_3',
+  amount:79000,currency:'RUB',status:'succeeded'},time);
+ assert.equal(access(store.db,'customer',time).limits.accounts,1);
+ assert.equal(access(store.db,'customer',time+7*day).limits.accounts,3);
 });

@@ -30,7 +30,7 @@ function kopeks(raw) {
 
 function createCheckout(db, customerId, planId, env, now = Date.now()) {
   const settings=config(env);
-  if(!Object.hasOwn(PLANS,planId) || planId==='trial') throw new Error('Invalid plan');
+  if(!Object.hasOwn(PLANS,planId) || !PLANS[planId].availableForCheckout) throw new Error('Invalid plan');
   if(!db.prepare('SELECT id FROM customers WHERE id=?').get(customerId)) throw new Error('Customer not found');
   initializeBilling(db);
   // Reuse a recent pending invoice to avoid multiple purchases from double clicks.
@@ -48,7 +48,7 @@ function createCheckout(db, customerId, planId, env, now = Date.now()) {
   const signed=signature([settings.login,outSum,String(invoice.id),settings.password1,'Shp_order='+invoice.order_key],settings.algorithm);
   const url=new URL('https://auth.robokassa.ru/Merchant/Index.aspx');
   url.search=new URLSearchParams({MerchantLogin:settings.login,OutSum:outSum,InvId:String(invoice.id),
-    Description:`VetaStart: ${PLANS[planId].title}, 30 дней`,SignatureValue:signed,Shp_order:invoice.order_key,
+    Description:`VetaStart: ${PLANS[planId].title}, 30 дней, аккаунтов: ${PLANS[planId].accounts}`,SignatureValue:signed,Shp_order:invoice.order_key,
     ...(settings.isTest?{IsTest:'1'}:{}),Culture:'ru',Encoding:'utf-8'}).toString();
   return {invoiceId:invoice.id,isTest:settings.isTest,paymentUrl:url.href};
 }

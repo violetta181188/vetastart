@@ -271,7 +271,7 @@ async function load() {
  el('identity').textContent = me.email; el('auth').hidden = true; el('cabinet').hidden = false;
  const sub=me.subscription;
  el('subscription').textContent=sub.active ? sub.title+' · доступ до '+new Date(sub.endAt).toLocaleString()+
-   ' · попытки ответов: '+sub.usedMessages+' из '+sub.limits.messages+
+   ' · попытки ответов: '+sub.usedMessages+(sub.limits.messages === null ? ' (без лимита)' : ' из '+sub.limits.messages)+
    ' · аккаунты: до '+sub.limits.accounts+' · сценарии: до '+sub.limits.rules : 'Активного доступа нет. Данные и сценарии сохранены.';
  const accounts = await api('accounts');
  el('accounts').textContent = accounts.length ? 'Подключённые аккаунты: ' + accounts.map(a=>a.account_id).join(', ') : 'Аккаунтов пока нет.';
@@ -296,16 +296,44 @@ async function load() {
  el('billing-status').textContent=!billing.enabled ? 'Робокасса ещё не подключена. Оплата недоступна.' : billing.isTest ? 'Тестовый режим: платежи не включают платную подписку.' : 'Оплата через Робокассу. Стоимость указана в рублях.';
  el('plans').replaceChildren();
  for(const plan of billing.plans) {
-  const card=document.createElement('article');const label=document.createElement('p');
-  label.textContent=plan.title+' — '+(plan.price/100).toLocaleString('ru-RU')+' ₽ / '+plan.days+' дней · аккаунты: '+plan.accounts+' · сценарии: '+plan.rules+' · попытки ответов: '+plan.messages;
-  const button=document.createElement('button');button.textContent=billing.isTest?'Тестовая оплата':'Оплатить 30 дней';button.disabled=!billing.enabled;
-  button.onclick=()=>run(async()=>{button.disabled=true;try{
-   const checkout=await api('billing/checkout',{method:'POST',body:JSON.stringify({planId:plan.id})});
-   const url=new URL(checkout.paymentUrl);
-   if(url.origin!=='https://auth.robokassa.ru'||url.pathname!=='/Merchant/Index.aspx')throw new Error('Некорректный адрес оплаты.');
-   window.location.assign(url.href);
-  }finally{button.disabled=false;}});
-  card.append(label,button);el('plans').append(card);
+  const card = document.createElement('article');
+  const label = document.createElement('p');
+  const accountLabel = document.createElement('label');
+  accountLabel.textContent = 'Сколько Instagram-аккаунтов подключить на 30 дней';
+  const accounts = document.createElement('select');
+  for (let count = plan.accounts; count <= plan.maxAccounts; count++) {
+   accounts.add(new Option(String(count), String(count)));
+  }
+  accounts.value = String(Math.min(plan.maxAccounts, Math.max(plan.accounts, sub.limits?.accounts ?? plan.accounts)));
+  accountLabel.append(accounts);
+  const details = document.createElement('small');
+  const rubles = amount => (amount / 100).toLocaleString('ru-RU') + ' ₽';
+  details.textContent = rubles(plan.price) + ' за первый аккаунт, +' + rubles(plan.extraAccountPrice) +
+   ' за каждый следующий · до ' + plan.rules + ' сценариев · автоответы без лимита';
+  const updatePrice = () => {
+   const price = plan.price + (Number(accounts.value) - plan.accounts) * plan.extraAccountPrice;
+   label.textContent = plan.title + ' — ' + rubles(price) + ' / ' + plan.days + ' дней';
+  };
+  accounts.onchange = updatePrice;
+  updatePrice();
+  const button = document.createElement('button');
+  button.textContent = !billing.enabled ? 'Оплата недоступна' : billing.isTest ? 'Тестовая оплата' : 'Оплатить 30 дней';
+  button.disabled = !billing.enabled;
+  button.onclick = () => run(async () => {
+   button.disabled = true;
+   accounts.disabled = true;
+   try {
+    const checkout = await api('billing/checkout', {method:'POST',body:JSON.stringify({planId:plan.id,accounts:Number(accounts.value)})});
+    const url = new URL(checkout.paymentUrl);
+    if (url.origin !== 'https://auth.robokassa.ru' || url.pathname !== '/Merchant/Index.aspx') throw new Error('Некорректный адрес оплаты.');
+    window.location.assign(url.href);
+   } finally {
+    button.disabled = false;
+    accounts.disabled = false;
+   }
+  });
+  card.append(label, accountLabel, details, document.createElement('br'), button);
+  el('plans').append(card);
  }
  el('invoices').replaceChildren();
  if(!billing.invoices.length)el('invoices').textContent='Счетов пока нет.';
