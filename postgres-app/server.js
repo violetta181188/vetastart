@@ -119,6 +119,7 @@ function createApp({store, env = process.env, fetchImpl = fetch, now = Date.now,
   });
   app.get("/", (req, res) => res.sendFile(path.join(__dirname, "..", "index.html")));
   app.get("/favicon.png", (_req, res) => res.sendFile(path.join(__dirname, "..", "favicon.png")));
+  app.get('/offer', require('../public-offer').publicOffer(env));
   app.get('/privacy',(_req,res)=>res.sendFile(path.join(__dirname,'..','privacy.html')));
   app.get('/data-deletion',(_req,res)=>res.sendFile(path.join(__dirname,'..','data-deletion.html')));
   app.get("*", (req, res) => {
