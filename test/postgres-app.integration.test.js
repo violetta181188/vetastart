@@ -333,4 +333,36 @@ test('PostgreSQL complete customer application',{skip:!url,timeout:60000},async 
   assert.deepEqual(await(await request('/api/customer/legacy-projects',{cookie:second})).json(),[]);
   assert.equal((await store.db.query('SELECT password_hash FROM public.users')).rows[0].password_hash,encoded);
  });
+ await t.test('Start keeps a separate five-rule limit per Instagram account when creating and sending', async () => {
+  const email = 'independent-limits@example.test';
+  const cookie = await signup(email);
+  const owner = await store.db.prepare('SELECT id FROM customers WHERE email=?').get(email);
+  const {applyVerifiedPayment, reserveSend} = require('../postgres-app/subscriptions');
+  const {bindAccount} = require('../postgres-app/customers');
+  await store.db.prepare("UPDATE subscription_periods SET status='expired' WHERE customer_id=?").run(owner.id);
+  await applyVerifiedPayment(store.db, {
+   customerId: owner.id, paymentId: 'fixture-start-3-rule-limits', planId: 'start_3',
+   amount: 79000, currency: 'RUB', status: 'succeeded'
+  });
+  for (const accountId of ['991', '992', '993']) {
+   await bindAccount(store.db, accountId, owner.id);
+   const responses = await Promise.all(Array.from({length: 6}, (_, index) => request('/api/customer/rules', {
+    cookie, method: 'POST',
+    body: {accountId, keyword: 'гайд'+index, reply: 'Ответ '+accountId, enabled: true}
+   })));
+   assert.equal(responses.filter(response => response.status === 201).length, 5);
+   const rejected = responses.find(response => response.status === 409);
+   assert.deepEqual(await rejected?.json(), {error: 'account_rule_limit_reached'});
+   const last = await store.db.prepare('SELECT keyword FROM customer_rules WHERE account_id=? ORDER BY rowid DESC LIMIT 1').get(accountId);
+   const event = {object: 'instagram', entry: [{id: accountId, messaging: [{
+    timestamp: Date.now(), sender: {id: '321'}, recipient: {id: accountId},
+    message: {mid: 'separate-rule-limits', text: last.keyword}
+   }]}]};
+   await store.receive(Buffer.from(JSON.stringify(event)), event);
+   await require('../postgres-app/worker').processPending(store, {env});
+   const draft = await store.db.prepare('SELECT id FROM drafts WHERE account_id=?').get(accountId);
+   assert.ok(draft);
+   assert.equal(await reserveSend(store.db, owner.id, draft.id), true);
+  }
+ });
 });

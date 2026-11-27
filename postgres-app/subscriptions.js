@@ -40,6 +40,7 @@ async function access(db, customerId, now = Date.now()) {
     limits: {
       accounts: plan.accounts,
       rules: plan.rules,
+      rulesPerAccount: !!plan.rulesPerAccount,
       messages: plan.messages
     },
     usedMessages: used
@@ -84,10 +85,12 @@ async function reserveSend(db, customerId, draftId, now = Date.now()) {
     }
     const draft = await db.prepare('SELECT account_id,scenario_id FROM drafts WHERE id=?').get(draftId);
     const accounts = await db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=? ORDER BY rowid LIMIT ?').all(customerId, entitlement.limits.accounts);
-    const rules = await db.prepare('SELECT id,enabled FROM customer_rules WHERE customer_id=? ORDER BY rowid LIMIT ?').all(customerId, entitlement.limits.rules);
-    if (!draft || !accounts.some(a => a.account_id === draft.account_id) || !rules.some(r => r.id === draft.scenario_id && r.enabled)) {
-      return false;
-    }
+    if (!draft || !accounts.some(account => account.account_id === draft.account_id)) return false;
+    const ruleAccountId = entitlement.limits.rulesPerAccount ? draft.account_id : null;
+    const rules = await db.prepare(`SELECT id,enabled FROM customer_rules
+      WHERE customer_id=? AND account_id=COALESCE(?, account_id) ORDER BY rowid LIMIT ?`)
+      .all(customerId, ruleAccountId, entitlement.limits.rules);
+    if (!rules.some(rule => rule.id === draft.scenario_id && rule.enabled)) return false;
     const claim = await db.prepare(`UPDATE drafts SET status='sending',attempted_at=?,failure_code=NULL WHERE id=? AND status='draft'
       AND account_id IN (SELECT account_id FROM customer_accounts WHERE customer_id=?)`).run(new Date(now).toISOString(), draftId, customerId);
     if (claim.changes) await db.prepare('INSERT INTO subscription_usage VALUES (?,?,?)').run(draftId, entitlement.periodId, now);

@@ -262,8 +262,10 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail, fetchIm
         .get(req.customer.id, accountId)) return {status: 403};
       const entitlement = await access(req.db, req.customer.id, now());
       if (!entitlement.active) return {status: 402};
-      const count = (await req.db.prepare('SELECT count(*) AS n FROM customer_rules WHERE customer_id=?').get(req.customer.id)).n;
-      if (count >= entitlement.limits.rules) return {status: 409, error: 'rule_limit_reached'};
+      const ruleAccountId = entitlement.limits.rulesPerAccount ? accountId : null;
+      const count = (await req.db.prepare(`SELECT count(*) AS n FROM customer_rules
+        WHERE customer_id=? AND account_id=COALESCE(?, account_id)`).get(req.customer.id, ruleAccountId)).n;
+      if (count >= entitlement.limits.rules) return {status: 409, error: ruleAccountId ? 'account_rule_limit_reached' : 'rule_limit_reached'};
       const id = crypto.randomUUID();
       await req.db.prepare('INSERT INTO customer_rules VALUES (?, ?, ?, ?, ?, ?)')
         .run(id, req.customer.id, accountId, keyword.trim(), reply.trim(), Number(enabled));

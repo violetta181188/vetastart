@@ -97,7 +97,8 @@ async function api(path, options = {}) {
   if(body?.error==='invalid_buttons')throw new Error('Проверьте названия кнопок, ссылки HTTPS и прикреплённые PDF. Текст ответа с кнопками может содержать до 640 символов.');
   if(body?.error==='button_storage_limit')throw new Error('Достигнут общий лимит PDF для этого сценария.');
   if(response.status===413)throw new Error('Размер вложений превышает допустимый.');
-  if(body?.error==='rule_limit_reached') throw new Error('Достигнут лимит сценариев вашего тарифа. Удалите ненужный сценарий.');
+  if(body?.error==='account_rule_limit_reached') throw new Error('Достигнут лимит сценариев для выбранного Instagram-аккаунта. Удалите ненужный сценарий этого аккаунта.');
+ if(body?.error==='rule_limit_reached') throw new Error('Достигнут лимит сценариев вашего тарифа. Удалите ненужный сценарий.');
   throw new Error(({401:'Проверьте email и пароль или войдите снова.',402:'Срок доступа закончился. Платежи пока не подключены — обратитесь к владельцу сервиса.',403:'Действие недоступно. Проверьте подключение аккаунта и доступ к регистрации.',429:'Слишком много попыток. Попробуйте через 15 минут.',409:'Не удалось создать аккаунт. Попробуйте войти.'})[response.status] || 'Не удалось выполнить действие. Попробуйте позже.');
  }
  return response.status === 204 ? null : response.json();
@@ -273,7 +274,7 @@ async function load() {
  const sub=me.subscription;
  el('subscription').textContent=sub.active ? sub.title+' · доступ до '+new Date(sub.endAt).toLocaleString()+
    ' · попытки ответов: '+sub.usedMessages+(sub.limits.messages === null ? ' (без лимита)' : ' из '+sub.limits.messages)+
-   ' · аккаунты: до '+sub.limits.accounts+' · сценарии: до '+sub.limits.rules : 'Активного доступа нет. Данные и сценарии сохранены.';
+   ' · аккаунты: до '+sub.limits.accounts+' · сценарии: до '+sub.limits.rules+(sub.limits.rulesPerAccount ? ' на аккаунт' : '') : 'Активного доступа нет. Данные и сценарии сохранены.';
  const accounts = await api('accounts');
  const nameForAccount = account => account.username ? '@' + account.username : account.account_id;
  const accountNames = new Map(accounts.map(account => [account.account_id, nameForAccount(account)]));
@@ -312,7 +313,8 @@ async function load() {
   const details = document.createElement('small');
   const rubles = amount => (amount / 100).toLocaleString('ru-RU') + ' ₽';
   details.textContent = rubles(plan.price) + ' за первый аккаунт, +' + rubles(plan.extraAccountPrice) +
-   ' за каждый следующий · до ' + plan.rules + ' сценариев · автоответы без лимита';
+   ' за каждый следующий · до ' + plan.rules + ' сценариев' +
+   (plan.rulesPerAccount ? ' на аккаунт' : '') + ' · автоответы без лимита';
   const updatePrice = () => {
    const price = plan.price + (Number(accounts.value) - plan.accounts) * plan.extraAccountPrice;
    label.textContent = plan.title + ' — ' + rubles(price) + ' / ' + plan.days + ' дней';

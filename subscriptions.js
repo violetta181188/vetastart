@@ -2,13 +2,13 @@ const crypto = require('node:crypto');
 const DAY = 86400000;
 const START = Object.freeze({
   title: 'Старт', days: 30, price: 59000, accounts: 1, rules: 5, messages: null,
-  availableForCheckout: true
+  rulesPerAccount: true, availableForCheckout: true
 });
 const EXTRA_ACCOUNT_PRICE = 10000;
 const MAX_START_ACCOUNTS = 10;
 const START_OFFER = Object.freeze({
   id: 'start', title: START.title, days: START.days, price: START.price, accounts: START.accounts,
-  rules: START.rules, messages: START.messages, extraAccountPrice: EXTRA_ACCOUNT_PRICE, maxAccounts: MAX_START_ACCOUNTS
+  rules: START.rules, rulesPerAccount: START.rulesPerAccount, messages: START.messages, extraAccountPrice: EXTRA_ACCOUNT_PRICE, maxAccounts: MAX_START_ACCOUNTS
 });
 
 function selectStartPlan(accounts = 1) {
@@ -70,7 +70,7 @@ function access(db, customerId, now = Date.now()) {
   const plan = PLANS[period.plan_id];
   return {active:true,status:period.plan_id==='trial'?'trial':'active',planId:period.plan_id,
     title:plan.title,periodId:period.id,startAt:period.start_at,endAt:period.end_at,
-    limits:{accounts:plan.accounts,rules:plan.rules,messages:plan.messages},usedMessages:used};
+    limits:{accounts:plan.accounts,rules:plan.rules,rulesPerAccount:!!plan.rulesPerAccount,messages:plan.messages},usedMessages:used};
 }
 
 // Internal entry point only. Provider adapters must authenticate the result per
@@ -116,9 +116,14 @@ function reserveSend(db, customerId, draftId, now = Date.now()) {
     const draft=db.prepare('SELECT account_id,scenario_id FROM drafts WHERE id=?').get(draftId);
     const accounts=db.prepare('SELECT account_id FROM customer_accounts WHERE customer_id=? ORDER BY rowid LIMIT ?')
       .all(customerId,entitlement.limits.accounts);
-    const rules=db.prepare('SELECT id,enabled FROM customer_rules WHERE customer_id=? ORDER BY rowid LIMIT ?')
-      .all(customerId,entitlement.limits.rules);
-    if(!draft || !accounts.some(a=>a.account_id===draft.account_id) || !rules.some(r=>r.id===draft.scenario_id&&r.enabled)) {
+    if (!draft || !accounts.some(account => account.account_id === draft.account_id)) {
+      db.exec('COMMIT');return false;
+    }
+    const ruleAccountId = entitlement.limits.rulesPerAccount ? draft.account_id : null;
+    const rules = db.prepare(`SELECT id,enabled FROM customer_rules
+      WHERE customer_id=? AND account_id=COALESCE(?, account_id) ORDER BY rowid LIMIT ?`)
+      .all(customerId, ruleAccountId, entitlement.limits.rules);
+    if (!rules.some(rule => rule.id === draft.scenario_id && rule.enabled)) {
       db.exec('COMMIT');return false;
     }
     const claim=db.prepare(`UPDATE drafts SET status='sending',attempted_at=?,failure_code=NULL WHERE id=? AND status='draft'
