@@ -169,22 +169,30 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
     if (typeof state !== 'string' || !(/^[a-f0-9]{64}$/).test(state) || !(/^[a-f0-9]{64}$/).test(browser || '')) {
       return res.status(400).send('Неверный запрос подключения. Начните подключение заново.');
     }
+    let stage = 'callback-config';
     try {
       const config = authConfig(env);
+      stage = 'load-oauth-state';
       const db = getStore().db;
       await initialize(db);
       const consumed = await db.prepare(`DELETE FROM instagram_oauth_states
         WHERE state_hash = ? AND browser_hash = ? AND expires_at > ? RETURNING state_hash, customer_id`).get(hash(state), hash(browser), now());
       if (!consumed) return res.status(400).send('Подключение истекло или уже использовано. Начните заново.');
+      stage = 'verify-customer-session';
       if (consumed.customer_id && (await customerForRequest(req, db, now()))?.id !== consumed.customer_id) return res.sendStatus(401);
       if (req.query.error || typeof req.query.code !== 'string' || !req.query.code) {
         return res.status(400).send('Разрешение Instagram не получено. Можно начать подключение заново.');
       }
       if (loginMode(env) === 'unified') {
+        stage = 'unified-login';
         const connection = await connectUnified(env, req.query.code, fetchImpl, now);
+        stage = 'start-connection-transaction';
         await db.transaction(async () => {
+          stage = 'check-account-limit';
           if (consumed.customer_id) await requireAccountSlot(db, consumed.customer_id, connection.accountId, now());
+          stage = 'bind-account-owner';
           await bindAccount(db, connection.accountId, consumed.customer_id);
+          stage = 'save-connection';
           await db.prepare(`INSERT INTO instagram_connections
           (account_id, token_cipher, expires_at, issued_at, token_mode, business_id, config_id)
           VALUES (?, ?, ?, ?, 'unified', ?, ?)
@@ -204,6 +212,7 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
         if (!response.ok) throw new Error('Meta request failed');
         return response.json();
       };
+      stage = 'instagram-token-exchange';
       const exchange = await request('https://api.instagram.com/oauth/access_token', {
         method: 'POST',
         body: new URLSearchParams({
@@ -217,16 +226,20 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
       const token = exchange.access_token ? exchange : exchange.data?.[0];
       if (typeof token?.access_token !== 'string' || !token.access_token) throw new Error('Token missing');
       const issuedAt = now();
+      stage = 'instagram-long-lived-token';
       const longLived = await exchangeLongLived(token.access_token, env.INSTAGRAM_CLIENT_SECRET, fetchImpl);
+      stage = 'check-login-mode';
       if (consumed.customer_id) throw new Error('Customer accounts require Unified Login');
       const headers = {
         Authorization: `Bearer ${longLived.accessToken}`
       };
+      stage = 'instagram-profile';
       const profile = await request(`https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/me?fields=user_id,username`, {
         headers
       });
       if (typeof profile.user_id !== 'string' || !(/^\d+$/).test(profile.user_id)) throw new Error('Account ID missing');
       if (env.INSTAGRAM_ACCOUNT_ID && profile.user_id !== env.INSTAGRAM_ACCOUNT_ID) throw new Error('Unexpected account');
+      stage = 'instagram-subscribe-messages';
       await request(`https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/${profile.user_id}/subscribed_apps`, {
         method: 'POST',
         headers,
@@ -236,8 +249,11 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
       }).then(result => {
         if (result.success !== true) throw new Error('Subscription failed');
       });
+      stage = 'start-connection-transaction';
       await db.transaction(async () => {
+        stage = 'bind-account-owner';
         await bindAccount(db, profile.user_id, null);
+        stage = 'save-connection';
         await db.prepare(`INSERT INTO instagram_connections
         (account_id, token_cipher, expires_at, long_lived, issued_at) VALUES (?, ?, ?, 1, ?)
         ON CONFLICT(account_id) DO UPDATE SET token_cipher=excluded.token_cipher,
@@ -247,7 +263,13 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
       });
       return res.redirect(303, '/connect/instagram/success');
     } catch (error) {
-      const diagnostic = error?.oauthDiagnostic || {stage: 'callback-validation-or-storage'};
+      const reason = {
+        'Subscription required': 'subscription-required',
+        'Account limit reached': 'account-limit-reached',
+        'Account already belongs to another customer': 'account-already-linked',
+        'Unexpected account': 'configured-account-mismatch'
+      }[error?.message];
+      const diagnostic = error?.oauthDiagnostic || {stage, ...(typeof reason === 'string' && {reason})};
       console.error('Instagram OAuth failed', JSON.stringify(diagnostic));
       return res.status(502).send('Подключение не завершено. Проверьте настройки Meta и повторите вход.');
     }
