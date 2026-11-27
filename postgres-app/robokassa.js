@@ -71,17 +71,23 @@ async function createCheckout(db, customerId, planId, env, now = Date.now()) {
     paymentUrl: url.href
   };
 }
+class InvalidPaymentResult extends Error {
+  constructor(reason, message) {
+    super(message);
+    this.reason = reason;
+  }
+}
 async function acceptResult(db, fields, env, now = Date.now()) {
   await initializeBilling(db);
   const {OutSum, InvId, SignatureValue, Shp_order} = fields || ({});
-  if (typeof InvId !== 'string' || !(/^[1-9]\d{0,9}$/).test(InvId) || typeof Shp_order !== 'string' || typeof SignatureValue !== 'string' || typeof OutSum !== 'string' || Object.keys(fields).some(key => key.startsWith('Shp_') && key !== 'Shp_order')) throw new Error('Invalid payment result');
+  if (typeof InvId !== 'string' || !(/^[1-9]\d{0,9}$/).test(InvId) || typeof Shp_order !== 'string' || typeof SignatureValue !== 'string' || typeof OutSum !== 'string' || Object.keys(fields).some(key => key.startsWith('Shp_') && key !== 'Shp_order')) throw new InvalidPaymentResult('invalid_fields', 'Invalid payment result');
   const invoice = await db.prepare('SELECT * FROM robokassa_invoices WHERE id=?').get(Number(InvId));
-  if (!invoice || invoice.order_key !== Shp_order || invoice.amount !== kopeks(OutSum)) throw new Error('Payment does not match invoice');
+  if (!invoice || invoice.order_key !== Shp_order || invoice.amount !== kopeks(OutSum)) throw new InvalidPaymentResult('invoice_mismatch', 'Payment does not match invoice');
   const settings = config(env, !!invoice.is_test, {
     forResult: true
   });
   const expected = signature([OutSum, InvId, settings.password2, 'Shp_order=' + Shp_order], settings.algorithm);
-  if (!(/^[a-f\d]+$/i).test(SignatureValue) || SignatureValue.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(SignatureValue.toLowerCase()), Buffer.from(expected))) throw new Error('Invalid result signature');
+  if (!(/^[a-f\d]+$/i).test(SignatureValue) || SignatureValue.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(SignatureValue.toLowerCase()), Buffer.from(expected))) throw new InvalidPaymentResult('invalid_signature', 'Invalid result signature');
   if (invoice.is_test) {
     await db.prepare("UPDATE robokassa_invoices SET status='test_paid' WHERE id=?").run(invoice.id);
   } else {
@@ -99,14 +105,28 @@ async function acceptResult(db, fields, env, now = Date.now()) {
 }
 function installRobokassa(app, {getStore, env, now = Date.now}) {
   const express = require('express');
-  app.post('/webhooks/payments/robokassa', express.urlencoded({
+  const resultPath = '/webhooks/payments/robokassa';
+  app.use(resultPath, (req, res, next) => {
+    res.once('finish', () => {
+      const outcome = res.locals.robokassaResult ?? 'unhandled';
+      console.info(`Robokassa result method=${req.method} status=${res.statusCode} outcome=${outcome}`);
+    });
+    next();
+  });
+  app.post(resultPath, express.urlencoded({
     extended: false,
     limit: '8kb'
   }), async (req, res) => {
-    if (Object.keys(req.query).length) return res.sendStatus(400);
+    if (Object.keys(req.query).length) {
+      res.locals.robokassaResult = 'unexpected_query';
+      return res.sendStatus(400);
+    }
     try {
-      res.type('text/plain').send(await acceptResult(getStore().db, req.body, env, now()));
-    } catch {
+      const confirmation = await acceptResult(getStore().db, req.body, env, now());
+      res.locals.robokassaResult = 'confirmed';
+      res.type('text/plain').send(confirmation);
+    } catch (error) {
+      res.locals.robokassaResult = error instanceof InvalidPaymentResult ? error.reason : 'validation_unavailable';
       res.sendStatus(400);
     }
   });
