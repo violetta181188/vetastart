@@ -271,6 +271,9 @@ function installInstagramAuth(app, {getStore, env, fetchImpl = fetch, now = Date
       }[error?.message];
       const diagnostic = error?.oauthDiagnostic || {stage, ...(typeof reason === 'string' && {reason})};
       console.error('Instagram OAuth failed', JSON.stringify(diagnostic));
+      if (stage === 'check-account-limit' && reason === 'account-limit-reached') {
+        return res.status(409).send('В кабинете VetaStart уже заняты все места для Instagram-аккаунтов. Для подключения ещё одного аккаунта выберите тариф с большим числом мест.');
+      }
       return res.status(502).send('Подключение не завершено. Проверьте настройки Meta и повторите вход.');
     }
   });
