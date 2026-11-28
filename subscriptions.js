@@ -63,8 +63,14 @@ function startTrial(db, customerId, now = Date.now()) {
 
 function access(db, customerId, now = Date.now()) {
   initializeSubscriptions(db);
-  const period = db.prepare(`SELECT * FROM subscription_periods WHERE customer_id=?
+  let period = db.prepare(`SELECT * FROM subscription_periods WHERE customer_id=?
     AND status='active' AND start_at<=? AND end_at>? ORDER BY start_at DESC LIMIT 1`).get(customerId,now,now);
+  if (period?.plan_id === 'trial') {
+    const paid = db.prepare(`SELECT * FROM subscription_periods WHERE customer_id=?
+      AND status='active' AND payment_id IS NOT NULL AND plan_id<>'trial'
+      AND start_at=? AND end_at>start_at ORDER BY id LIMIT 1`).get(customerId, period.end_at);
+    if (paid && Object.hasOwn(PLANS, paid.plan_id)) period = paid;
+  }
   if (!period || !PLANS[period.plan_id]) return { active:false, status:'subscription_required' };
   const used = db.prepare('SELECT count(*) AS n FROM subscription_usage WHERE period_id=?').get(period.id).n;
   const plan = PLANS[period.plan_id];
