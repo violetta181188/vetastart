@@ -82,6 +82,7 @@ function installCustomers(app, {getStore, env, now = Date.now, sendMail, fetchIm
     });
     next();
   });
+  router.get('/registration', (_req, res) => res.json({ registrationOpen: env.VETASTART_SIGNUP_ENABLED === 'true' }));
   router.use((req, res, next) => {
     if (!['GET', 'HEAD'].includes(req.method) && !validOrigin(req, env)) return res.sendStatus(403);
     next();

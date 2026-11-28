@@ -71,6 +71,7 @@ function installCustomers(app, { getStore, env, now = Date.now, sendMail, fetchI
   const express = require('express');
   const router = express.Router();
   router.use((_req, res, next) => { res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); next(); });
+  router.get('/registration', (_req, res) => res.json({ registrationOpen: env.VETASTART_SIGNUP_ENABLED === 'true' }));
   router.use((req, res, next) => {
     if (!['GET', 'HEAD'].includes(req.method) && !validOrigin(req, env)) return res.sendStatus(403);
     next();

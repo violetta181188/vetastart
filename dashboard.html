@@ -31,11 +31,11 @@ fieldset legend{padding-inline:6px;font-weight:650}
 </style>
 <header><a href="/">VetaStart</a><h1>Ваш кабинет</h1></header>
 <p id="status" role="status" aria-live="polite"></p>
-<section id="auth"><h2>Вход и регистрация</h2>
+<section id="auth"><h2 id="auth-title">Вход</h2>
 <form id="login" aria-describedby="login-status" novalidate><label>Email<input name="email" type="email" autocomplete="username" required></label>
 <label for="login-password">Пароль — от 12 символов</label><div class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="256" required><button type="button" class="password-toggle" aria-label="Показать пароль" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div>
-<button name="action" value="login">Войти</button><button name="action" value="register">Создать аккаунт</button><p id="login-status" role="status" aria-live="polite"></p></form>
-<small>Регистрация доступна, только если её включил владелец сервиса.</small></section>
+<button name="action" value="login">Войти</button><button id="register" name="action" value="register" hidden>Создать аккаунт</button><p id="login-status" role="status" aria-live="polite"></p></form>
+<small id="registration-status" role="status"></small></section>
 <section id="recovery"><h2>Доступ к аккаунту</h2>
 <form id="email-action" aria-describedby="recovery-status" novalidate><label>Email<input name="email" type="email" autocomplete="email" required></label>
 <button name="action" value="request-verification">Отправить подтверждение почты</button>
@@ -93,6 +93,10 @@ async function api(path, options = {}) {
   if (response.status === 401) { el('auth').hidden = false; el('cabinet').hidden = true; }
   const body = await response.json().catch(()=>null);
   if(response.status===400&&['verify-email','reset-password'].includes(path))throw new Error('Ссылка недействительна или срок её действия закончился. Запросите новое письмо.');
+  if(path==='register'&&response.status===403) {
+   await loadRegistrationStatus();
+   throw new Error('Регистрация сейчас недоступна. Если аккаунт уже есть, войдите.');
+  }
   if(body?.error==='email_verification_required')throw new Error('Сначала подтвердите email. При необходимости запросите новое письмо ниже.');
   if(body?.error==='invalid_buttons')throw new Error('Проверьте названия кнопок, ссылки HTTPS и прикреплённые PDF. Текст ответа с кнопками может содержать до 640 символов.');
   if(body?.error==='button_storage_limit')throw new Error('Достигнут общий лимит PDF для этого сценария.');
@@ -102,6 +106,22 @@ async function api(path, options = {}) {
   throw new Error(({401:'Проверьте email и пароль или войдите снова.',402:'Срок доступа закончился. Платежи пока не подключены — обратитесь к владельцу сервиса.',403:'Действие недоступно. Проверьте подключение аккаунта и доступ к регистрации.',429:'Слишком много попыток. Попробуйте через 15 минут.',409:'Не удалось создать аккаунт. Попробуйте войти.'})[response.status] || 'Не удалось выполнить действие. Попробуйте позже.');
  }
  return response.status === 204 ? null : response.json();
+}
+async function loadRegistrationStatus() {
+ const button = el('register');
+ const title = el('auth-title');
+ const status = el('registration-status');
+ try {
+  const { registrationOpen } = await api('registration');
+  if (typeof registrationOpen !== 'boolean') throw new Error('Invalid registration status');
+  button.hidden = !registrationOpen;
+  title.textContent = registrationOpen ? 'Вход и регистрация' : 'Вход';
+  status.textContent = registrationOpen ? '' : 'Регистрация новых аккаунтов пока закрыта.';
+ } catch {
+  button.hidden = true;
+  title.textContent = 'Вход';
+  status.textContent = 'Не удалось проверить доступность регистрации. Обновите страницу.';
+ }
 }
 let rules = [];
 let editing = null;
@@ -493,5 +513,6 @@ if(resetToken){el('reset-panel').hidden=false;el('reset').onsubmit=event=>{event
  const data=new FormData(event.target);await api('reset-password',{method:'POST',body:JSON.stringify({token:resetToken,password:data.get('password')})});
  event.target.reset();el('reset-panel').hidden=true;el('auth').hidden=false;el('cabinet').hidden=true;message('Пароль обновлён. Войдите заново.');
 });};}
+loadRegistrationStatus();
 load().catch(()=>{});
 </script></html>
